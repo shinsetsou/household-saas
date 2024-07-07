@@ -13,41 +13,31 @@ class ContributionAdded extends Mailable
 {
     use Queueable, SerializesModels;
 
+    public $contributionData;
+
     /**
      * Create a new message instance.
      */
-    public function __construct()
+    public function __construct(array $contributionData)
     {
-        //
+        $this->contributionData = $contributionData;
     }
 
     /**
-     * Get the message envelope.
-     */
-    public function envelope(): Envelope
-    {
-        return new Envelope(
-            subject: 'Contribution Added',
-        );
-    }
-
-    /**
-     * Get the message content definition.
-     */
-    public function content(): Content
-    {
-        return new Content(
-            view: 'view.name',
-        );
-    }
-
-    /**
-     * Get the attachments for the message.
+     * Build the message.
      *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
+     * @return $this
      */
-    public function attachments(): array
+    public function build()
     {
-        return [];
+        $email = $this->view('emails.contribution.added')
+                      ->with('contributionData', $this->contributionData);
+
+        // Attach the image if it exists
+        if (isset($this->contributionData['photo'])) {
+            $email->attachFromStorage('public/' . $this->contributionData['photo']);
+        }
+
+        return $email;
     }
 }

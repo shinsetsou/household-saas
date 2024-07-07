@@ -21,10 +21,16 @@ class HouseholdController extends Controller
                 return redirect()->back()->with('organization', $organization);
             }
 
+            // Calculate the total contributions for this household
+            $totalContributions = $household->contributions()->sum('amount');
+
+            // Calculate the total expenses for this household
+            $totalExpenses = Expense::where('organization_id', $organization->id)->sum('amount');
+
             $itemsPerPage = $request->input('itemsPerPage', 10); // Default to 10 items per page
             $contributions = $household->contributions()->orderBy('created_at', 'desc')->paginate($itemsPerPage);
 
-            return view('households.show', compact('household', 'contributions', 'itemsPerPage', 'organization'));
+            return view('households.show', compact('household', 'contributions', 'itemsPerPage', 'organization', 'totalContributions', 'totalExpenses'));
         }
 
         $households = Household::all();

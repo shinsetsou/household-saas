@@ -14,14 +14,14 @@ class ContributionCreated
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public $contribution;
+    public $contributionData;
     /**
      * Create a new event instance.
      */
-    public function __construct($contribution = [])
+    public function __construct($contributionData = [])
     {
         //
-        $this->contribution = $contribution;
+        $this->contributionData = $contributionData;
     }
 
     /**
