@@ -55,7 +55,7 @@
             <div class="relative w-full max-w-2xl px-6 lg:max-w-7xl">
                 <header>
                     <div class="flex justify-between items-center py-4">
-                        <h1 class="text-6xl font-bold text-cyan-600 dark:text-blue-500">@yield('title')</h1>
+                        <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-cyan-600 dark:text-blue-500">@yield('title')</h1>
 
                     </div>
 

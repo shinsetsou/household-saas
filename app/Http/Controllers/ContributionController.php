@@ -27,16 +27,16 @@ class ContributionController extends Controller
     public function verify(Organization $organization)
     {
         // Logic for verifying contributions
+        $itemsPerPage = request()->get('itemsPerPage', 10);
         // Retrieve contributions needing verification through households
-        $contributions = Contribution::select('reference_number', DB::raw('SUM(amount) as total_amount'))
-        ->whereHas('household', function ($query) use ($organization) {
-            $query->where('organization_id', $organization->id);
-        })
-        ->where('admin_verified', 0)
-        ->groupBy('reference_number')
-        ->get();
+        $contributions = Contribution::select('contributions.reference_number', DB::raw('SUM(contributions.amount) as total_amount'), 'households.name as household_name')
+        ->join('households', 'contributions.household_id', '=', 'households.id')
+        ->where('households.organization_id', $organization->id)
+        ->where('contributions.admin_verified', 0)
+        ->groupBy('contributions.reference_number', 'households.name')
+        ->paginate($itemsPerPage);
 
-        return view('contributions.verify', compact('organization', 'contributions'));
+        return view('contributions.verify', compact('organization', 'contributions', 'itemsPerPage'));
     }
 
     public function verifyContribution(Request $request, Organization $organization, $reference_number)
