@@ -1,4 +1,4 @@
-<!-- resources/views/households/show.blade.php -->
+
 
 @extends('layouts.layout')
 
@@ -13,7 +13,7 @@
         <div class="my-2 text-center">
             <h2 class="text-4xl text-cyan-600 dark:text-white/100 uppercase">Organization Standing</h2>
             <p class="mt-2 text-lg text-cyan-600 dark:text-white/100">Total Collected Monthly Dues: <strong class="text-green-500">${{ number_format($totalContributions, 2) }}</strong></p>
-            <p class="text-lg text-cyan-600 dark:text-white/100">Total Expenses: <strong class="text-red-600">${{ number_format($totalExpenses, 2) }}</strong></p>
+            <a href="{{ route('expenses.index', [ $organization ]) }}"><p class="text-lg text-cyan-600 dark:text-white/100">Total Expenses: <strong class="text-red-600">${{ number_format($totalExpenses, 2) }}</strong></p></a>
         </div>
     </div>
 
