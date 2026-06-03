@@ -113,7 +113,7 @@
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-100">
             <thead class="bg-gray-50">
-                <tr>
+                <tr class="h-12">
                     <th class="th-cell">Date</th>
                     <th class="th-cell">Amount</th>
                     <th class="th-cell">Description</th>
@@ -121,7 +121,7 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
                 @foreach($expenses as $expense)
-                <tr class="hover:bg-gray-50 transition-colors">
+                <tr class="h-12 hover:bg-gray-50 transition-colors">
                     <td class="td-cell text-center text-gray-600 whitespace-nowrap">
                         {{ $expense->created_at->format('M d, Y') }}
                     </td>

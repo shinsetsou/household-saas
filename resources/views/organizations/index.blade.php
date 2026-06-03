@@ -13,28 +13,28 @@
         </div>
         <div class="flex items-center gap-2">
             <a href="{{ route('households.create', $organization->slug) }}"
-               class="btn-add-household">
+               class="btn-add-household flex justify-center items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800 transition-colors shadow-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
                 </svg>
                 Add Household
             </a>
-            <a href="{{ route('households.import.create', $organization->slug) }}"
+            <!--<a href="{{ route('households.import.create', $organization->slug) }}"
                class="btn-import-csv">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M4 3a2 2 0 100 4h12a2 2 0 100-4H4zm0 7a2 2 0 100 4h12a2 2 0 100-4H4zm0 7a2 2 0 100 4h12a2 2 0 100-4H4z" clip-rule="evenodd"/>
                 </svg>
                 Import CSV
-            </a>
+            </a>-->
             <a href="{{ route('expenses.create', $organization->slug) }}"
-               class="btn-secondary">
+               class="flex justify-center items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 active:bg-red-800 transition-colors shadow-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
                 </svg>
                 Add Expense
             </a>
             <a href="{{ route('contributions.verify', $organization->slug) }}"
-               class="btn-primary">
+               class="flex justify-center items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-green-600 text-white hover:bg-green-700 active:bg-green-800 transition-colors shadow-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                 </svg>

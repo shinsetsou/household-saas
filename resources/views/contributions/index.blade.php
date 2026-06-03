@@ -66,7 +66,7 @@
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-100">
             <thead class="bg-gray-50">
-                <tr>
+                <tr class="h-12">
                     <th class="th-cell">Household</th>
                     <th class="th-cell">Amount</th>
                     <th class="th-cell">Status</th>
@@ -77,7 +77,7 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
                 @foreach($contributions as $contribution)
-                <tr class="hover:bg-gray-50 transition-colors">
+                <tr class="h-12 hover:bg-gray-50 transition-colors">
                     <td class="td-cell">
                         <div class="flex items-center justify-center gap-2.5">
                             <span class="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold uppercase">
