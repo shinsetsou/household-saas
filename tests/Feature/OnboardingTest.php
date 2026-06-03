@@ -213,4 +213,41 @@ class OnboardingTest extends TestCase
 
         $response->assertRedirect(route('organizations.index', $newer));
     }
+
+    public function test_full_register_to_dashboard_flow(): void
+    {
+        $registerResponse = $this->post(route('register'), [
+            'name' => 'Ana Cruz',
+            'email' => 'ana@example.com',
+            'password' => 'super-secret-123',
+        ]);
+        $registerResponse->assertRedirect(route('onboarding.organization.create'));
+
+        $this->get(route('onboarding.organization.create'))->assertOk();
+
+        $step1 = $this->post(route('onboarding.organization.store'), [
+            'name' => 'Sunshine HOA',
+            'monthly_due_amount' => 250,
+        ]);
+        $step1->assertRedirect(route('onboarding.households.create'));
+
+        $csv = "name,block,lot\nCruz Family,7,12\n";
+        $file = UploadedFile::fake()->createWithContent('households.csv', $csv);
+        $step2 = $this->post(route('onboarding.households.store'), ['file' => $file]);
+        $step2->assertRedirect(route('onboarding.done.show'));
+
+        $done = $this->get(route('onboarding.done.show'));
+        $done->assertOk();
+        $done->assertSee('Sunshine HOA');
+        $done->assertSee('1'); // household count
+
+        $user = User::where('email', 'ana@example.com')->first();
+        $org = Organization::where('name', 'Sunshine HOA')->first();
+
+        $this->assertTrue($user->belongsToOrganization($org));
+        $this->assertSame(1, $org->households()->count());
+
+        // After /onboarding/done, hitting /dashboard goes to the tenant dashboard.
+        $this->get('/dashboard')->assertRedirect(route('organizations.index', $org));
+    }
 }
