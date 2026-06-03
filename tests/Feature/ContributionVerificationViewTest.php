@@ -135,4 +135,25 @@ class ContributionVerificationViewTest extends TestCase
         $response->assertOk();
         $response->assertSee('verify-badge', false);
     }
+
+    public function test_badge_count_does_not_leak_across_organizations(): void
+    {
+        $orgA = Organization::factory()->create();
+        $orgB = Organization::factory()->create();
+        $householdA = Household::factory()->create(['organization_id' => $orgA->id]);
+        Contribution::factory()->count(2)->create([
+            'household_id' => $householdA->id,
+            'reference_number' => 'ref-a',
+            'verification_status' => 'pending',
+        ]);
+
+        // User belongs only to org B, which has no pending contributions.
+        $userB = $this->member($orgB);
+
+        $response = $this->actingAs($userB)->get(route('contributions.index', $orgB));
+
+        $response->assertOk();
+        // Org B's nav must not show org A's pending count.
+        $response->assertDontSee('verify-badge', false);
+    }
 }
