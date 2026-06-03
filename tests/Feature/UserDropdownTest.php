@@ -25,6 +25,32 @@ class UserDropdownTest extends TestCase
         $response->assertSee(route('logout'), false);
     }
 
+    public function test_dropdown_is_cloaked_until_avatar_is_clicked(): void
+    {
+        $user = User::factory()->create();
+        $org = Organization::factory()->create();
+        $user->organizations()->attach($org->id, ['role' => 'admin']);
+
+        $response = $this->actingAs($user)->get(route('organizations.index', $org));
+
+        $response->assertOk();
+        $response->assertSee('[x-cloak] { display: none !important; }', false);
+        $response->assertSee('x-show="open" x-cloak', false);
+    }
+
+    public function test_layout_uses_vite_bundle_for_alpine(): void
+    {
+        $user = User::factory()->create();
+        $org = Organization::factory()->create();
+        $user->organizations()->attach($org->id, ['role' => 'admin']);
+
+        $response = $this->actingAs($user)->get(route('organizations.index', $org));
+
+        $response->assertOk();
+        $response->assertDontSee('/js/app.js', false);
+        $response->assertSee('/build/assets/app-', false);
+    }
+
     public function test_settings_link_visible_to_admin(): void
     {
         $user = User::factory()->create();

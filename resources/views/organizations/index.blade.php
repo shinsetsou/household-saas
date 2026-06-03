@@ -17,7 +17,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
                 </svg>
-                Add Household
+                Household
             </a>
             <a href="{{ route('households.import.create', $organization->slug) }}"
                class="btn-import-csv">
@@ -114,7 +114,7 @@
     </div>
 
     {{-- Balance --}}
-    <div class="stat-card {{ $balance >= 0 ? 'ring-1 ring-indigo-200' : 'ring-1 ring-red-200' }}">
+    <div class="stat-card {{ $balance >= 0 ? '' : 'ring-1 ring-red-200' }}">
         <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Balance</span>
             <span class="flex items-center justify-center w-8 h-8 rounded-lg {{ $balance >= 0 ? 'bg-indigo-100 text-indigo-600' : 'bg-red-100 text-red-600' }}">

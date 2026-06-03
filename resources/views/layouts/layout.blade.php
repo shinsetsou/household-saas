@@ -50,6 +50,7 @@
 
     <style>
         body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+        [x-cloak] { display: none !important; }
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
@@ -323,7 +324,7 @@
     </div>
 
     <!-- ===== SCRIPTS ===== -->
-    <script src="{{ asset('js/app.js') }}"></script>
+    @vite(['resources/js/app.js'])
     <script>
         // Dark mode toggle
         document.addEventListener('DOMContentLoaded', function () {
