@@ -1,78 +1,259 @@
-<!-- resources/views/layouts/layout.blade.php -->
-
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Household')</title>
+    <title>@yield('title', 'HOA Manager') &mdash; HOA Manager</title>
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=figtree:400,600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700&display=swap" rel="stylesheet" />
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
-          theme: {
-            extend: {
-              colors: {
-                primary: '#1d4ed8',
-                secondary: '#06b6d4',
-                link: '#84cc16',
-              }
-            }
-          }
-        }
-      </script>
-          <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const themeToggleBtn = document.getElementById('theme-toggle');
-                const htmlClasses = document.documentElement.classList;
-                const currentTheme = localStorage.getItem('theme');
-                if (currentTheme) {
-                    htmlClasses.add(currentTheme);
-                } else {
-                    htmlClasses.add('dark'); // Default to dark mode
-                }
-
-                themeToggleBtn.addEventListener('click', function() {
-                    if (htmlClasses.contains('dark')) {
-                        htmlClasses.remove('dark');
-                        htmlClasses.add('light');
-                        localStorage.setItem('theme', 'light');
-                    } else {
-                        htmlClasses.remove('light');
-                        htmlClasses.add('dark');
-                        localStorage.setItem('theme', 'dark');
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50:  '#eef2ff',
+                            100: '#e0e7ff',
+                            200: '#c7d2fe',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                        }
                     }
-                });
-            });
-        </script>
+                }
+            }
+        }
+    </script>
+
+    <!-- Theme init: run before paint to prevent flash -->
+    <script>
+        (function () {
+            var stored = localStorage.getItem('theme');
+            if (stored === 'light') {
+                document.documentElement.classList.remove('dark');
+            } else {
+                // Default dark
+                document.documentElement.classList.add('dark');
+            }
+        })();
+    </script>
+
+    <style>
+        body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 9999px; }
+        .dark ::-webkit-scrollbar-thumb { background: #374151; }
+    </style>
 </head>
-<body class="font-sans antialiased dark:bg-black dark:text-white/50">
-    <div class="bg-gray-50 text-black/50 dark:bg-black dark:text-white/50">
-        <div class="relative min-h-screen flex flex-col items-center justify-center selection:bg-[#FF2D20] selection:text-white">
-            <div class="relative w-full max-w-2xl px-6 lg:max-w-7xl">
-                <header>
-                    <div class="flex justify-between items-center py-4">
-                        <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-cyan-600 dark:text-blue-500">@yield('title')</h1>
 
-                    </div>
+<body class="h-full bg-gray-50 text-gray-900 antialiased">
 
-                </header>
+    <!-- ===== TOP NAVBAR ===== -->
+    <nav class="fixed top-0 inset-x-0 z-40 h-14 bg-white border-b border-gray-200 shadow-sm">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between gap-4">
 
-                <main class="mt-6">
-                    @yield('content')
-                </main>
+            <!-- Brand -->
+            <a href="javascript:void(0)" class="flex items-center gap-2.5 flex-shrink-0 group">
+                <!-- Simple house icon -->
+                <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600 text-white shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                    </svg>
+                </span>
+                <span class="text-base font-semibold text-gray-900 tracking-tight">HOA Manager</span>
+            </a>
 
-                <footer class="py-16 text-center text-sm text-black dark:text-white/70">
-                    <p>&copy; {{ date('Y') }} Household Contributions</p>
-                </footer>
+            @php
+                // Resolve organization from view variable or route parameter
+                $navOrg = $organization ?? request()->route('organization') ?? null;
+            @endphp
 
+            <!-- Nav links (center / left-of-center) — only shown when organization context exists -->
+            @if($navOrg)
+            <div class="hidden sm:flex items-center gap-1 flex-1 ml-4">
+                @auth
+                <a href="{{ route('organizations.index', $navOrg->slug) }}"
+                   class="nav-link {{ request()->routeIs('organizations.index') ? 'nav-link-active' : '' }}">
+                    Dashboard
+                </a>
+
+                <a href="{{ route('home', $navOrg->slug) }}"
+                   class="nav-link {{ request()->routeIs('home') ? 'nav-link-active' : '' }}">
+                    Households
+                </a>
+
+                <a href="{{ route('contributions.index', $navOrg->slug) }}"
+                   class="nav-link {{ request()->routeIs('contributions.index') ? 'nav-link-active' : '' }}">
+                    Contributions
+                </a>
+
+                <a href="{{ route('expenses.index', $navOrg->slug) }}"
+                   class="nav-link {{ request()->routeIs('expenses.index') ? 'nav-link-active' : '' }}">
+                    Expenses
+                </a>
+
+                <a href="{{ route('contributions.verify', $navOrg->slug) }}"
+                   class="nav-link {{ request()->routeIs('contributions.verify') ? 'nav-link-active' : '' }}">
+                    Verify
+                </a>
+                @endauth
+            </div>
+            @endif
+
+            <!-- Right actions -->
+            <div class="flex items-center gap-2 ml-auto">
+                <!-- Organization badge -->
+                @if($navOrg)
+                <span class="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/>
+                    </svg>
+                    {{ $navOrg->name }}
+                </span>
+                @endif
+
+                <!-- Dark mode toggle -->
+                <button id="theme-toggle" type="button"
+                    class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    aria-label="Toggle dark mode">
+                    <!-- Sun icon (shown in dark mode) -->
+                    <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/>
+                    </svg>
+                    <!-- Moon icon (shown in light mode) -->
+                    <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 block" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                    </svg>
+                </button>
+
+                <!-- Mobile menu button -->
+                @if($navOrg)
+                <button id="mobile-menu-btn" type="button"
+                    class="sm:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+                    aria-label="Open menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+                @endif
             </div>
         </div>
+
+        <!-- Mobile dropdown menu -->
+        @if($navOrg)
+        <div id="mobile-menu" class="hidden sm:hidden border-t border-gray-200 bg-white">
+            <div class="px-3 py-2 space-y-1">
+                <a href="{{ route('organizations.index', $navOrg->slug) }}" class="mobile-nav-link">Dashboard</a>
+                <a href="{{ route('home', $navOrg->slug) }}" class="mobile-nav-link">Households</a>
+                <a href="{{ route('contributions.index', $navOrg->slug) }}" class="mobile-nav-link">Contributions</a>
+                <a href="{{ route('expenses.index', $navOrg->slug) }}" class="mobile-nav-link">Expenses</a>
+                <a href="{{ route('contributions.verify', $navOrg->slug) }}" class="mobile-nav-link">Verify Contributions</a>
+            </div>
+        </div>
+        @endif
+    </nav>
+
+    <!-- Shared inline styles for nav links (since we're on CDN tailwind, JIT is fully available) -->
+    <style>
+        .nav-link {
+            @apply px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors;
+        }
+        .nav-link-active {
+            @apply text-indigo-600 bg-indigo-50 hover:bg-indigo-50 hover:text-indigo-600
+        }
+        .mobile-nav-link {
+            @apply block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors;
+        }
+    </style>
+
+    <!-- ===== PAGE WRAPPER ===== -->
+    <div class="pt-14 min-h-screen flex flex-col">
+
+        <!-- Flash messages -->
+        @if(session('success') || session('error') || session('info'))
+        <div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 mt-4">
+            @if(session('success'))
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-green-50 border border-green-200 text-green-800 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0 text-green-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                <span>{{ session('success') }}</span>
+            </div>
+            @endif
+            @if(session('error'))
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0 text-red-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <span>{{ session('error') }}</span>
+            </div>
+            @endif
+            @if(session('info'))
+            <div class="flex items-center gap-3 p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 flex-shrink-0 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 100 2 1 1 0 000-2zm-1 4a1 1 0 011-1h1a1 1 0 110 2v3a1 1 0 11-2 0v-4z" clip-rule="evenodd"/>
+                </svg>
+                <span>{{ session('info') }}</span>
+            </div>
+            @endif
+        </div>
+        @endif
+
+        <!-- Main content -->
+        <main class="flex-1 mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+            @yield('content')
+        </main>
+
+        <!-- ===== FOOTER ===== -->
+        <footer class="border-t border-gray-200 bg-white">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+                <p class="text-xs text-gray-400">
+                    &copy; {{ date('Y') }} HOA Manager &mdash; Household Contribution System
+                </p>
+                <p class="text-xs text-gray-400">v1.0</p>
+            </div>
+        </footer>
     </div>
-    <!-- Add JavaScript files here -->
+
+    <!-- ===== SCRIPTS ===== -->
     <script src="{{ asset('js/app.js') }}"></script>
+    <script>
+        // Dark mode toggle
+        document.addEventListener('DOMContentLoaded', function () {
+            var btn = document.getElementById('theme-toggle');
+            if (!btn) return;
+            btn.addEventListener('click', function () {
+                var html = document.documentElement;
+                if (html.classList.contains('dark')) {
+                    html.classList.remove('dark');
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    html.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                }
+            });
+
+            // Mobile menu
+            var mobileBtn = document.getElementById('mobile-menu-btn');
+            var mobileMenu = document.getElementById('mobile-menu');
+            if (mobileBtn && mobileMenu) {
+                mobileBtn.addEventListener('click', function () {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+        });
+    </script>
 </body>
 </html>

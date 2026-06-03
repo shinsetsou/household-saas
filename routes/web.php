@@ -85,7 +85,7 @@ Route::prefix('/{organization:slug}')->group(function () {
 
         Route::middleware(EnsureOrganizationAdmin::class)->group(function () {
             Route::get('settings', [OrganizationSettingsController::class, 'show'])->name('organizations.settings.show');
-            Route::patch('settings/general', fn () => 'placeholder')->name('organizations.settings.update-general');
+            Route::patch('settings/general', [OrganizationSettingsController::class, 'updateGeneral'])->name('organizations.settings.update-general');
         });
     });
 });
