@@ -38,4 +38,21 @@ class ContributionVerificationViewTest extends TestCase
         $all->assertSee('111.00');
         $all->assertSee('222.00');
     }
+
+    public function test_tabs_show_status_counts_and_badge_column(): void
+    {
+        $org = Organization::factory()->create();
+        $user = $this->member($org);
+        $household = Household::factory()->create(['organization_id' => $org->id]);
+        Contribution::factory()->count(3)->create(['household_id' => $household->id, 'verification_status' => 'pending']);
+        Contribution::factory()->create(['household_id' => $household->id, 'verification_status' => 'verified']);
+
+        $response = $this->actingAs($user)->get(route('contributions.index', $org));
+
+        $response->assertOk();
+        $response->assertSee('Pending');
+        $response->assertSee('Verified');
+        $response->assertSeeInOrder(['Pending', '3']);
+        $response->assertSee('Verification');
+    }
 }
