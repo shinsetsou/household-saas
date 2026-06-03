@@ -71,6 +71,7 @@
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
 
     {{-- Total Households --}}
+    <a href="{{ route('households.index', $organization->slug) }}" >
     <div class="stat-card">
         <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Households</span>
@@ -83,6 +84,7 @@
         <p class="text-3xl font-bold text-gray-900">{{ $organization->households()->count() }}</p>
         <p class="mt-1 text-xs text-gray-500">Registered households</p>
     </div>
+    </a>
 
     {{-- Total Contributions --}}
     <div class="stat-card">

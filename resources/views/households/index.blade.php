@@ -50,13 +50,15 @@
                 <thead class="bg-gray-50">
                     <tr>
                         <th class="th-cell">Name</th>
+                        <th class="th-cell">Block</th>
+                        <th class="th-cell">Lot</th>
                         <th class="th-cell">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100">
                     @foreach ($households as $household)
                     <tr class="hover:bg-gray-50 transition-colors">
-                        <td class="td-cell">
+                        <td class="td-cell justify-center">
                             <div class="flex items-center gap-3">
                                 <span class="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold uppercase">
                                     {{ strtoupper(substr($household->name, 0, 1)) }}
@@ -64,8 +66,18 @@
                                 <span class="text-sm font-medium text-gray-900">{{ $household->name }}</span>
                             </div>
                         </td>
-                        <td class="td-cell">
-                            <div class="flex items-center gap-2">
+                        <td class="td-cell justify-center">
+                            <div class="flex justify-center items-center gap-3">
+                                <span class="text-sm font-medium text-gray-900">{{ $household->block }}</span>
+                            </div>
+                        </td>
+                        <td class="td-cell justify-center">
+                            <div class="flex justify-center items-center gap-3">
+                                <span class="text-sm font-medium text-gray-900">{{ $household->lot }}</span>
+                            </div>
+                        </td>
+                        <td class="td-cell justify-center">
+                            <div class="flex justify-center items-center gap-2">
                                 @if(isset($organization))
                                 <a href="{{ route('households.show', [$organization, $household]) }}"
                                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors border border-indigo-200">

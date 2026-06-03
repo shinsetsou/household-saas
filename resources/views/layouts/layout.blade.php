@@ -83,16 +83,11 @@
 
             <!-- Nav links (center / left-of-center) — only shown when organization context exists -->
             @if($navOrg)
-            <div class="hidden sm:flex items-center gap-1 flex-1 ml-4">
+            <div class="hidden sm:flex items-center gap-3 flex-1 ml-4">
                 @auth
                 <a href="{{ route('organizations.index', $navOrg->slug) }}"
                    class="nav-link {{ request()->routeIs('organizations.index') ? 'nav-link-active' : '' }}">
                     Dashboard
-                </a>
-
-                <a href="{{ route('home', $navOrg->slug) }}"
-                   class="nav-link {{ request()->routeIs('home') ? 'nav-link-active' : '' }}">
-                    Households
                 </a>
 
                 <a href="{{ route('contributions.index', $navOrg->slug) }}"
