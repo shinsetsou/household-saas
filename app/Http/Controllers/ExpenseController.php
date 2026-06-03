@@ -14,11 +14,11 @@ class ExpenseController extends Controller
         $query = Expense::where('organization_id', $organization->id);
         $itemsPerPage = $request->input('itemsPerPage', 10); // Default to 10 items per page
 
-        if ($request->has('month')) {
+        if ($request->filled('month')) {
             $query->whereMonth('created_at', $request->month);
         }
 
-        if ($request->has('year')) {
+        if ($request->filled('year')) {
             $query->whereYear('created_at', $request->year);
         }
 
