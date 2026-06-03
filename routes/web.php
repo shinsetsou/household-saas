@@ -6,6 +6,8 @@ use App\Http\Controllers\HouseholdController;
 use App\Http\Controllers\HouseholdImportController;
 use App\Http\Controllers\ContributionController;
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\OrganizationSettingsController;
+use App\Http\Middleware\EnsureOrganizationAdmin;
 
 Route::get('/{organization:slug}', [OrganizationController::class, 'show'])->name('home');
 
@@ -21,5 +23,11 @@ Route::prefix('/{organization:slug}')->group(function () {
     Route::get('contributions/verify', [ContributionController::class, 'verify'])->name('contributions.verify');
     Route::patch('contributions/{reference_number}/verify', [ContributionController::class, 'verifyContribution'])->name('contributions.verify.store');
     Route::resource('expenses', ExpenseController::class)->except(['show', 'edit', 'update', 'destroy']);
+});
+
+Route::prefix('/{organization:slug}')->middleware(['auth', EnsureOrganizationAdmin::class])->group(function () {
+    Route::get('settings', [OrganizationSettingsController::class, 'show'])->name('organizations.settings.show');
+    Route::patch('settings/general', fn () => 'placeholder')->name('organizations.settings.update-general');
+    // PATCH route added in Task 4
 });
 
