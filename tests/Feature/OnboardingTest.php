@@ -146,4 +146,33 @@ class OnboardingTest extends TestCase
 
         $response->assertRedirect(route('organizations.index', $org));
     }
+
+    public function test_step_3_displays_success_with_dashboard_cta(): void
+    {
+        $user = User::factory()->create();
+        $org = Organization::factory()->create();
+        $user->organizations()->attach($org->id, ['role' => 'admin']);
+        session(['onboarding.organization_id' => $org->id]);
+
+        $response = $this->actingAs($user)->get(route('onboarding.done.show'));
+
+        $response->assertOk();
+        $response->assertSee("You're all set", false);
+        $response->assertSee($org->name);
+        $response->assertSee(route('organizations.index', $org), false);
+        $response->assertSee('Step 3 of 3', false);
+    }
+
+    public function test_step_3_clears_onboarding_session_key(): void
+    {
+        $user = User::factory()->create();
+        $org = Organization::factory()->create();
+        $user->organizations()->attach($org->id, ['role' => 'admin']);
+        session(['onboarding.organization_id' => $org->id]);
+
+        $response = $this->actingAs($user)->get(route('onboarding.done.show'));
+
+        $response->assertOk();
+        $this->assertNull(session('onboarding.organization_id'));
+    }
 }

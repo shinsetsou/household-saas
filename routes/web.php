@@ -4,6 +4,7 @@ use App\Http\Controllers\ContributionController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\HouseholdController;
 use App\Http\Controllers\HouseholdImportController;
+use App\Http\Controllers\Onboarding\DoneStepController;
 use App\Http\Controllers\Onboarding\HouseholdsStepController;
 use App\Http\Controllers\Onboarding\OrganizationStepController;
 use App\Http\Controllers\OrganizationController;
@@ -40,7 +41,7 @@ Route::middleware('auth')->prefix('onboarding')->name('onboarding.')->group(func
         Route::get('households', [HouseholdsStepController::class, 'create'])->name('households.create');
         Route::post('households', [HouseholdsStepController::class, 'store'])->name('households.store');
         Route::post('households/skip', [HouseholdsStepController::class, 'skip'])->name('households.skip');
-        Route::get('done', fn () => 'step 3 placeholder')->name('done.show'); // replaced in Task 8
+        Route::get('done', [DoneStepController::class, 'show'])->name('done.show');
     });
 });
 
