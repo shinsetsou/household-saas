@@ -106,8 +106,14 @@
                 </a>
 
                 <a href="{{ route('contributions.verify', $navOrg->slug) }}"
-                   class="nav-link {{ request()->routeIs('contributions.verify') ? 'nav-link-active' : '' }}">
+                   class="nav-link inline-flex items-center gap-1.5 {{ request()->routeIs('contributions.verify') ? 'nav-link-active' : '' }}">
                     Verify
+                    @if(($pendingVerificationCount ?? 0) > 0)
+                        <span class="verify-badge inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-600 text-white text-xs font-semibold"
+                              data-count="{{ $pendingVerificationCount }}">
+                            {{ $pendingVerificationCount }}
+                        </span>
+                    @endif
                 </a>
                 @endauth
             </div>
@@ -231,7 +237,15 @@
                 <a href="{{ route('home', $navOrg->slug) }}" class="mobile-nav-link">Households</a>
                 <a href="{{ route('contributions.index', $navOrg->slug) }}" class="mobile-nav-link">Contributions</a>
                 <a href="{{ route('expenses.index', $navOrg->slug) }}" class="mobile-nav-link">Expenses</a>
-                <a href="{{ route('contributions.verify', $navOrg->slug) }}" class="mobile-nav-link">Verify Contributions</a>
+                <a href="{{ route('contributions.verify', $navOrg->slug) }}" class="mobile-nav-link flex items-center justify-between">
+                    <span>Verify Contributions</span>
+                    @if(($pendingVerificationCount ?? 0) > 0)
+                        <span class="verify-badge inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-600 text-white text-xs font-semibold"
+                              data-count="{{ $pendingVerificationCount }}">
+                            {{ $pendingVerificationCount }}
+                        </span>
+                    @endif
+                </a>
 
                 <hr class="my-2 border-gray-200">
 

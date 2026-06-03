@@ -22,26 +22,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        View::composer('*', function ($view): void {
-            static $cache = [];
-            $requestId = spl_object_id(request());
+        View::composer('layouts.layout', function ($view): void {
+            $count = 0;
+            $org = request()->route('organization');
+            $user = auth()->user();
 
-            if (! isset($cache[$requestId])) {
-                $count = 0;
-                $org = request()->route('organization');
-                $user = auth()->user();
-
-                if ($org instanceof Organization && $user && $user->belongsToOrganization($org)) {
-                    $count = Contribution::forOrganization($org)
-                        ->where('verification_status', 'pending')
-                        ->distinct()
-                        ->count('reference_number');
-                }
-
-                $cache[$requestId] = $count;
+            if ($org instanceof Organization && $user && $user->belongsToOrganization($org)) {
+                $count = Contribution::forOrganization($org)
+                    ->where('verification_status', 'pending')
+                    ->distinct()
+                    ->count('reference_number');
             }
 
-            $view->with('pendingVerificationCount', $cache[$requestId]);
+            $view->with('pendingVerificationCount', $count);
         });
     }
 }

@@ -80,16 +80,19 @@ class ContributionVerificationViewTest extends TestCase
         $user = $this->member($org);
         $household = Household::factory()->create(['organization_id' => $org->id]);
 
+        // Two pending rows sharing one reference_number = one submission.
         Contribution::factory()->count(2)->create([
             'household_id' => $household->id,
             'reference_number' => 'ref-shared',
             'verification_status' => 'pending',
         ]);
+        // A second distinct pending submission.
         Contribution::factory()->create([
             'household_id' => $household->id,
             'reference_number' => 'ref-other',
             'verification_status' => 'pending',
         ]);
+        // Verified row must not count.
         Contribution::factory()->create([
             'household_id' => $household->id,
             'reference_number' => 'ref-verified',
@@ -99,10 +102,11 @@ class ContributionVerificationViewTest extends TestCase
         $response = $this->actingAs($user)->get(route('contributions.index', $org));
 
         $response->assertOk();
-        $response->assertViewHas('pendingVerificationCount', 2);
+        $response->assertSee('data-count="2"', false);
+        $response->assertDontSee('data-count="3"', false);
     }
 
-    public function test_verify_badge_zero_when_nothing_pending(): void
+    public function test_verify_badge_hidden_when_nothing_pending(): void
     {
         $org = Organization::factory()->create();
         $user = $this->member($org);
@@ -111,6 +115,24 @@ class ContributionVerificationViewTest extends TestCase
 
         $response = $this->actingAs($user)->get(route('contributions.index', $org));
 
-        $response->assertViewHas('pendingVerificationCount', 0);
+        $response->assertOk();
+        $response->assertDontSee('verify-badge', false);
+    }
+
+    public function test_verify_badge_visible_when_pending(): void
+    {
+        $org = Organization::factory()->create();
+        $user = $this->member($org);
+        $household = Household::factory()->create(['organization_id' => $org->id]);
+        Contribution::factory()->create([
+            'household_id' => $household->id,
+            'reference_number' => 'ref-x',
+            'verification_status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('contributions.index', $org));
+
+        $response->assertOk();
+        $response->assertSee('verify-badge', false);
     }
 }
