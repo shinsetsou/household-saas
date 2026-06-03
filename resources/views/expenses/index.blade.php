@@ -122,13 +122,13 @@
             <tbody class="divide-y divide-gray-100">
                 @foreach($expenses as $expense)
                 <tr class="hover:bg-gray-50 transition-colors">
-                    <td class="td-cell text-gray-600 whitespace-nowrap">
+                    <td class="td-cell text-center text-gray-600 whitespace-nowrap">
                         {{ $expense->created_at->format('M d, Y') }}
                     </td>
-                    <td class="td-cell font-semibold text-red-600 whitespace-nowrap">
+                    <td class="td-cell text-center font-semibold text-red-600 whitespace-nowrap">
                         &#8369;{{ number_format($expense->amount, 2) }}
                     </td>
-                    <td class="td-cell text-gray-700">
+                    <td class="td-cell text-center text-gray-700">
                         {{ $expense->description }}
                     </td>
                 </tr>

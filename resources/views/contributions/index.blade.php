@@ -79,7 +79,7 @@
                 @foreach($contributions as $contribution)
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="td-cell">
-                        <div class="flex items-center gap-2.5">
+                        <div class="flex items-center justify-center gap-2.5">
                             <span class="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold uppercase">
                                 {{ strtoupper(substr($contribution->household->name ?? '?', 0, 1)) }}
                             </span>
@@ -88,10 +88,10 @@
                             </span>
                         </div>
                     </td>
-                    <td class="td-cell font-semibold text-gray-900">
+                    <td class="td-cell text-center font-semibold text-gray-900">
                         &#8369;{{ number_format($contribution->amount, 2) }}
                     </td>
-                    <td class="td-cell">
+                    <td class="td-cell text-center">
                         @if($contribution->status === 'paid')
                             <span class="status-badge-green">Paid</span>
                         @elseif($contribution->status === 'lacking')
@@ -100,7 +100,7 @@
                             <span class="status-badge-gray">{{ ucfirst($contribution->status ?? '—') }}</span>
                         @endif
                     </td>
-                    <td class="td-cell">
+                    <td class="td-cell text-center">
                         @if($contribution->verification_status === 'verified')
                             <span class="status-badge-green">Verified</span>
                         @elseif($contribution->verification_status === 'rejected')
@@ -109,10 +109,10 @@
                             <span class="status-badge-gray">Pending</span>
                         @endif
                     </td>
-                    <td class="td-cell text-gray-600">
+                    <td class="td-cell text-center text-gray-600">
                         {{ $contribution->created_at->format('M d, Y') }}
                     </td>
-                    <td class="td-cell">
+                    <td class="td-cell text-center">
                         @if($contribution->photo)
                             <a href="{{ asset('storage/' . $contribution->photo) }}" target="_blank"
                                class="inline-flex items-center justify-center w-9 h-9 rounded-lg overflow-hidden border border-gray-200 hover:ring-2 hover:ring-indigo-500 transition">
