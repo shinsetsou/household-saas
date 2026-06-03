@@ -73,4 +73,44 @@ class ContributionVerificationViewTest extends TestCase
         $pending->assertOk();
         $pending->assertSee('border-indigo-600');
     }
+
+    public function test_verify_badge_counts_distinct_pending_submissions(): void
+    {
+        $org = Organization::factory()->create();
+        $user = $this->member($org);
+        $household = Household::factory()->create(['organization_id' => $org->id]);
+
+        Contribution::factory()->count(2)->create([
+            'household_id' => $household->id,
+            'reference_number' => 'ref-shared',
+            'verification_status' => 'pending',
+        ]);
+        Contribution::factory()->create([
+            'household_id' => $household->id,
+            'reference_number' => 'ref-other',
+            'verification_status' => 'pending',
+        ]);
+        Contribution::factory()->create([
+            'household_id' => $household->id,
+            'reference_number' => 'ref-verified',
+            'verification_status' => 'verified',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('contributions.index', $org));
+
+        $response->assertOk();
+        $response->assertViewHas('pendingVerificationCount', 2);
+    }
+
+    public function test_verify_badge_zero_when_nothing_pending(): void
+    {
+        $org = Organization::factory()->create();
+        $user = $this->member($org);
+        $household = Household::factory()->create(['organization_id' => $org->id]);
+        Contribution::factory()->create(['household_id' => $household->id, 'verification_status' => 'verified']);
+
+        $response = $this->actingAs($user)->get(route('contributions.index', $org));
+
+        $response->assertViewHas('pendingVerificationCount', 0);
+    }
 }
