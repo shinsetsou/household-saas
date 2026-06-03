@@ -81,10 +81,16 @@ class MicroSaasMvpTest extends TestCase
         $lookup = $this->get(route('households.index', [$organization, 'block' => 1, 'lot' => 2]));
         $lookup->assertOk()->assertSee('Visible Household')->assertDontSee('Hidden Household');
 
+        // Guests (residents) must land on the PUBLIC household dashboard (block+lot lookup),
+        // never the auth-only households.show route which would bounce them to login.
         $this->post(route('contributions.store', [$organization, $household]), [
             'amount' => 200,
             'photo' => $this->fakePng('receipt.png'),
-        ])->assertRedirect(route('households.show', [$organization, $household]));
+        ])->assertRedirect(route('households.index', [
+            'organization' => $organization,
+            'block' => $household->block,
+            'lot' => $household->lot,
+        ]));
 
         $this->assertDatabaseHas('contributions', [
             'household_id' => $household->id,

@@ -64,6 +64,7 @@ Route::prefix('/{organization:slug}')->group(function () {
         Route::get('dashboard', [OrganizationController::class, 'index'])->name('organizations.index');
 
         Route::get('households/import', [HouseholdImportController::class, 'create'])->name('households.import.create');
+        Route::get('households/import/sample', [HouseholdImportController::class, 'sample'])->name('households.import.sample');
         Route::post('households/import', [HouseholdImportController::class, 'store'])->name('households.import.store');
         Route::resource('households', HouseholdController::class)->except(['index']);
 

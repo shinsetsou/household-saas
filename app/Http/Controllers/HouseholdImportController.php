@@ -14,6 +14,28 @@ class HouseholdImportController extends Controller
         return view('households.import', compact('organization'));
     }
 
+    public function sample(Organization $organization)
+    {
+        $rows = [
+            ['name', 'block', 'lot'],
+            ['Dela Cruz Residence', '1', '1'],
+            ['Reyes Residence', '1', '2'],
+            ['Santos Residence', '2', '5'],
+        ];
+
+        $callback = function () use ($rows) {
+            $handle = fopen('php://output', 'w');
+            foreach ($rows as $row) {
+                fputcsv($handle, $row);
+            }
+            fclose($handle);
+        };
+
+        return response()->streamDownload($callback, 'households-sample.csv', [
+            'Content-Type' => 'text/csv',
+        ]);
+    }
+
     public function store(Request $request, Organization $organization, HouseholdCsvImporter $importer)
     {
         $validated = $request->validate([

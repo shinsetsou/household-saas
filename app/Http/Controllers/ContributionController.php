@@ -137,7 +137,11 @@ class ContributionController extends Controller
 
                     DB::commit();
 
-                    return redirect()->route('contributions.index', $organization)->with('success', 'Contribution added successfully.');
+                    return redirect()->route('households.index', [
+                        'organization' => $organization,
+                        'block' => $household->block,
+                        'lot' => $household->lot,
+                    ])->with('success', 'Contribution added successfully.');
                 }
             }
 
@@ -181,7 +185,11 @@ class ContributionController extends Controller
 
             DB::commit();
 
-            return redirect()->route('households.show', [$organization, $household])->with('success', 'Contribution added successfully.');
+            return redirect()->route('households.index', [
+                'organization' => $organization,
+                'block' => $household->block,
+                'lot' => $household->lot,
+            ])->with('success', 'Contribution added successfully.');
 
         } catch (\Exception $e) {
 
