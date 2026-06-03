@@ -25,7 +25,7 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('dashboard', absolute: false));
+        $response->assertRedirect(route('onboarding.organization.create'));
     }
 
     public function test_new_user_can_register_without_password_confirmation(): void
@@ -37,7 +37,7 @@ class RegistrationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect();
+        $response->assertRedirect(route('onboarding.organization.create'));
         $this->assertDatabaseHas('users', ['email' => 'ana@example.com']);
     }
 
