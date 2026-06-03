@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -77,7 +78,7 @@ class OrganizationSettingsTest extends TestCase
             'action' => 'organization.settings.updated',
         ]);
 
-        $log = \App\Models\AuditLog::where('organization_id', $org->id)
+        $log = AuditLog::where('organization_id', $org->id)
             ->where('action', 'organization.settings.updated')
             ->first();
 
