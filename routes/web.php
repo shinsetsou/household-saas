@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\HouseholdController;
+use App\Http\Controllers\HouseholdImportController;
 use App\Http\Controllers\ContributionController;
 use App\Http\Controllers\OrganizationController;
 
@@ -10,6 +11,8 @@ Route::get('/{organization:slug}', [OrganizationController::class, 'show'])->nam
 
 Route::prefix('/{organization:slug}')->group(function () {
     Route::resource('households', HouseholdController::class);
+    Route::get('households/import', [HouseholdImportController::class, 'create'])->name('households.import.create');
+    Route::post('households/import', [HouseholdImportController::class, 'store'])->name('households.import.store');
     Route::get('contributions',[ContributionController::class, 'index'])->name('contributions.index');
     Route::get('households/{household}/contributions/create', [ContributionController::class, 'create'])->name('contributions.create');
     Route::post('households/{household}/contributions', [ContributionController::class, 'store'])->name('contributions.store');
