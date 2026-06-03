@@ -16,12 +16,26 @@ class ContributionController extends Controller
 {
     public function index(Organization $organization)
     {
+        $allowed = ['verified', 'pending', 'rejected'];
+        $status = in_array(request()->query('status'), $allowed, true)
+            ? request()->query('status')
+            : null;
+
+        $counts = Contribution::forOrganization($organization)
+            ->selectRaw('verification_status, COUNT(*) as aggregate')
+            ->groupBy('verification_status')
+            ->pluck('aggregate', 'verification_status');
+
+        $totalCount = (int) $counts->sum();
+
         $contributions = Contribution::forOrganization($organization)
+            ->when($status, fn ($query) => $query->where('verification_status', $status))
             ->with('household')
             ->latest()
-            ->paginate(request()->input('itemsPerPage', 25));
+            ->paginate(request()->input('itemsPerPage', 25))
+            ->appends(array_filter(['status' => $status]));
 
-        return view('contributions.index', compact('contributions', 'organization'));
+        return view('contributions.index', compact('contributions', 'organization', 'status', 'counts', 'totalCount'));
     }
 
     //

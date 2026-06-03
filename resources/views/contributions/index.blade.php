@@ -5,13 +5,39 @@
 @section('content')
 
 {{-- Page header --}}
-<div class="mb-8">
+<div class="mb-6">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">All Contributions</h1>
             <p class="mt-1 text-sm text-gray-500">Complete record of household payments</p>
         </div>
     </div>
+</div>
+
+{{-- Verification status tabs --}}
+@php
+    $tabs = [
+        null        => ['label' => 'All',      'count' => $totalCount],
+        'verified'  => ['label' => 'Verified', 'count' => (int) ($counts['verified'] ?? 0)],
+        'pending'   => ['label' => 'Pending',  'count' => (int) ($counts['pending'] ?? 0)],
+        'rejected'  => ['label' => 'Rejected', 'count' => (int) ($counts['rejected'] ?? 0)],
+    ];
+@endphp
+<div class="mb-6 flex flex-wrap gap-1 border-b border-gray-200">
+    @foreach($tabs as $value => $tab)
+        @php $active = ($value === '' || $value === null) ? is_null($status) : $status === $value; @endphp
+        <a href="{{ route('contributions.index', array_filter([$organization->slug, 'status' => $value])) }}"
+           class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition
+                  {{ $active ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700' }}">
+            {{ $tab['label'] }}
+            @if($tab['count'] > 0)
+                <span class="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-semibold
+                             {{ $active ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-600' }}">
+                    {{ $tab['count'] }}
+                </span>
+            @endif
+        </a>
+    @endforeach
 </div>
 
 {{-- Table / empty state --}}
@@ -23,8 +49,12 @@
             <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9z" clip-rule="evenodd"/>
         </svg>
     </span>
-    <p class="text-sm font-semibold text-gray-900 mb-1">No contributions recorded</p>
-    <p class="text-sm text-gray-500">Contributions will appear here after households submit payments.</p>
+    <p class="text-sm font-semibold text-gray-900 mb-1">
+        {{ $status ? 'No '.$status.' contributions' : 'No contributions recorded' }}
+    </p>
+    <p class="text-sm text-gray-500">
+        {{ $status ? 'Try a different tab.' : 'Contributions will appear here after households submit payments.' }}
+    </p>
 </div>
 @else
 <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -40,6 +70,7 @@
                     <th class="th-cell">Household</th>
                     <th class="th-cell">Amount</th>
                     <th class="th-cell">Status</th>
+                    <th class="th-cell">Verification</th>
                     <th class="th-cell">Date</th>
                     <th class="th-cell">Receipt</th>
                 </tr>
@@ -48,7 +79,7 @@
                 @foreach($contributions as $contribution)
                 <tr class="hover:bg-gray-50 transition-colors">
                     <td class="td-cell">
-                        <div class="flex items-center gap-2.5">
+                        <div class="flex items-center justify-center gap-2.5">
                             <span class="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold uppercase">
                                 {{ strtoupper(substr($contribution->household->name ?? '?', 0, 1)) }}
                             </span>
@@ -57,10 +88,10 @@
                             </span>
                         </div>
                     </td>
-                    <td class="td-cell font-semibold text-gray-900">
+                    <td class="td-cell text-center font-semibold text-gray-900">
                         &#8369;{{ number_format($contribution->amount, 2) }}
                     </td>
-                    <td class="td-cell">
+                    <td class="td-cell text-center">
                         @if($contribution->status === 'paid')
                             <span class="status-badge-green">Paid</span>
                         @elseif($contribution->status === 'lacking')
@@ -69,10 +100,19 @@
                             <span class="status-badge-gray">{{ ucfirst($contribution->status ?? '—') }}</span>
                         @endif
                     </td>
-                    <td class="td-cell text-gray-600">
+                    <td class="td-cell text-center">
+                        @if($contribution->verification_status === 'verified')
+                            <span class="status-badge-green">Verified</span>
+                        @elseif($contribution->verification_status === 'rejected')
+                            <span class="status-badge-red">Rejected</span>
+                        @else
+                            <span class="status-badge-gray">Pending</span>
+                        @endif
+                    </td>
+                    <td class="td-cell text-center text-gray-600">
                         {{ $contribution->created_at->format('M d, Y') }}
                     </td>
-                    <td class="td-cell">
+                    <td class="td-cell text-center">
                         @if($contribution->photo)
                             <a href="{{ asset('storage/' . $contribution->photo) }}" target="_blank"
                                class="inline-flex items-center justify-center w-9 h-9 rounded-lg overflow-hidden border border-gray-200 hover:ring-2 hover:ring-indigo-500 transition">
@@ -96,6 +136,7 @@
     .status-badge-green  { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 }
     .status-badge-yellow { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 }
     .status-badge-gray   { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 }
+    .status-badge-red    { @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 }
 </style>
 
 @endsection

@@ -79,7 +79,7 @@
                     <th class="th-cell">Reference</th>
                     <th class="th-cell">Household</th>
                     <th class="th-cell">Total Amount</th>
-                    <th class="th-cell text-right">Actions</th>
+                    <th class="th-cell text-center">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
@@ -87,15 +87,15 @@
                 <tr class="hover:bg-gray-50 transition-colors">
 
                     {{-- Reference number --}}
-                    <td class="td-cell">
+                    <td class="td-cell text-center">
                         <span class="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                             {{ substr($contribution->reference_number, 0, 8) }}…
                         </span>
                     </td>
 
                     {{-- Household --}}
-                    <td class="td-cell">
-                        <div class="flex items-center gap-2.5">
+                    <td class="td-cell justify-content-center">
+                        <div class="flex items-center justify-center gap-2.5">
                             <span class="flex-shrink-0 flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 text-indigo-600 text-xs font-bold uppercase">
                                 {{ strtoupper(substr($contribution->household_name ?? '?', 0, 1)) }}
                             </span>
@@ -106,13 +106,13 @@
                     </td>
 
                     {{-- Amount --}}
-                    <td class="td-cell font-semibold text-gray-900">
+                    <td class="td-cell text-center font-semibold text-gray-900">
                         &#8369;{{ number_format($contribution->total_amount, 2) }}
                     </td>
 
                     {{-- Actions --}}
-                    <td class="td-cell">
-                        <div class="flex items-center justify-end gap-2">
+                    <td class="td-cell items-center">
+                        <div class="flex items-center justify-center gap-2">
                             {{-- Verify --}}
                             <form action="{{ route('contributions.verify.store', [$organization, $contribution->reference_number]) }}" method="POST">
                                 @csrf
