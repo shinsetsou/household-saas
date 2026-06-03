@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Expense;
+use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ExpenseFactory extends Factory
@@ -12,7 +13,7 @@ class ExpenseFactory extends Factory
     public function definition()
     {
         return [
-            'organization_id' => \App\Models\Organization::factory(),
+            'organization_id' => Organization::factory(),
             'amount' => $this->faker->randomFloat(2, 10, 1000),
             'description' => $this->faker->sentence,
             'created_at' => $this->faker->dateTimeThisYear,

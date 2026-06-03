@@ -44,4 +44,16 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function organizations()
+    {
+        return $this->belongsToMany(Organization::class)
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    public function belongsToOrganization(Organization $organization): bool
+    {
+        return $this->organizations()->whereKey($organization->id)->exists();
+    }
 }

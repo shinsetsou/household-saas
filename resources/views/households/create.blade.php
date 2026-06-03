@@ -1,16 +1,111 @@
-<!-- resources/views/households/create.blade.php -->
-
 @extends('layouts.layout')
 
 @section('title', 'Add Household')
 
 @section('content')
-    <h1>Add Household</h1>
 
-    <form action="{{ route('households.store') }}" method="POST">
-        @csrf
-        <label for="name">Name:</label>
-        <input type="text" id="name" name="name" required>
-        <button type="submit">Add Household</button>
-    </form>
+{{-- Breadcrumb --}}
+<nav class="flex items-center gap-2 text-xs text-gray-500 mb-6">
+    @if(isset($organization))
+    <a href="{{ route('organizations.index', $organization->slug) }}" class="hover:text-indigo-600 transition-colors">Dashboard</a>
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+    @endif
+    <span class="text-gray-700 font-medium">Add Household</span>
+</nav>
+
+<div class="max-w-lg mx-auto">
+    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+
+        {{-- Card header --}}
+        <div class="px-6 py-5 border-b border-gray-100">
+            <div class="flex items-center gap-3">
+                <span class="flex items-center justify-center w-9 h-9 rounded-lg bg-indigo-100 text-indigo-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
+                    </svg>
+                </span>
+                <div>
+                    <h1 class="text-base font-semibold text-gray-900">Add Household</h1>
+                    <p class="text-xs text-gray-500">Register a new household in the system</p>
+                </div>
+            </div>
+        </div>
+
+        {{-- Form --}}
+        <form action="{{ route('households.store', $organization) }}" method="POST" id="household-form" class="px-6 py-6 space-y-5">
+            @csrf
+
+            <div>
+                <label for="name" class="form-label">
+                    Household Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="name" name="name"
+                       value="{{ old('name') }}"
+                       placeholder="e.g. Santos Family"
+                       class="mt-1.5 form-input @error('name') form-input-error @enderror"
+                       required>
+                <p class="mt-1.5 text-xs text-gray-500">Typically the family surname or unit identifier.</p>
+                @error('name')
+                    <p class="mt-1.5 error-msg">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        {{ $message }}
+                    </p>
+                @enderror
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label for="block" class="form-label">Block <span class="text-red-500">*</span></label>
+                    <input type="number" id="block" name="block" value="{{ old('block') }}" min="1"
+                           class="mt-1.5 form-input @error('block') form-input-error @enderror" required>
+                    @error('block') <p class="mt-1.5 error-msg">{{ $message }}</p> @enderror
+                </div>
+                <div>
+                    <label for="lot" class="form-label">Lot <span class="text-red-500">*</span></label>
+                    <input type="number" id="lot" name="lot" value="{{ old('lot') }}" min="1"
+                           class="mt-1.5 form-input @error('lot') form-input-error @enderror" required>
+                    @error('lot') <p class="mt-1.5 error-msg">{{ $message }}</p> @enderror
+                </div>
+            </div>
+
+            {{-- Actions --}}
+            <div class="flex gap-3 pt-2">
+                @if(isset($organization))
+                <a href="{{ route('home', $organization->slug) }}"
+                   class="flex-1 inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                    Cancel
+                </a>
+                @endif
+                <button type="submit" id="submit-btn"
+                        class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <span id="submit-label">Add Household</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+    .form-label { @apply block text-sm font-medium text-gray-700 }
+    .form-input {
+        @apply w-full px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition;
+    }
+    .form-input-error { @apply border-red-400 focus:ring-red-500; }
+    .error-msg { @apply flex items-center gap-1 text-xs text-red-600 }
+</style>
+
+<script>
+    document.getElementById('household-form').addEventListener('submit', function () {
+        const btn = document.getElementById('submit-btn');
+        const label = document.getElementById('submit-label');
+        btn.disabled = true;
+        label.textContent = 'Adding…';
+    });
+</script>
+
 @endsection

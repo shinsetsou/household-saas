@@ -1,14 +1,16 @@
 <?php
+
 // app/Http/Controllers/ExpensesController.php
+
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Expense;
 use App\Models\Organization;
+use App\Services\DelinquencyService;
+use Illuminate\Http\Request;
 
 class OrganizationController extends Controller
 {
-    public function index(Organization $organization, Request $request)
+    public function index(Organization $organization, Request $request, DelinquencyService $delinquencyService)
     {
         $year = $request->input('year', date('Y'));
 
@@ -23,25 +25,38 @@ class OrganizationController extends Controller
             ->whereYear('created_at', $year)
             ->sum('amount');
 
-        return view('organizations.index', compact('organization', 'year', 'totalContributions', 'totalExpenses'));
+        $currentMonthPaid = $organization->households()
+            ->join('contributions', 'households.id', '=', 'contributions.household_id')
+            ->whereMonth('contributions.created_at', now()->month)
+            ->whereYear('contributions.created_at', now()->year)
+            ->where('contributions.verification_status', 'verified')
+            ->sum('contributions.amount');
+
+        $currentMonthPending = $organization->households()
+            ->join('contributions', 'households.id', '=', 'contributions.household_id')
+            ->whereMonth('contributions.created_at', now()->month)
+            ->whereYear('contributions.created_at', now()->year)
+            ->where('contributions.verification_status', 'pending')
+            ->count();
+
+        $delinquentHouseholds = count($delinquencyService->forOrganization($organization, now()->year, now()->month));
+        $expectedMonthly = $organization->households()->count() * (float) $organization->monthly_due_amount;
+
+        return view('organizations.index', compact(
+            'organization',
+            'year',
+            'totalContributions',
+            'totalExpenses',
+            'currentMonthPaid',
+            'currentMonthPending',
+            'delinquentHouseholds',
+            'expectedMonthly'
+        ));
     }
 
     public function show(Organization $organization)
     {
-        //dd($organization);
+        // dd($organization);
         return view('home', compact('organization'));
-    }
-
-
-
-    public function store(Request $request, Organization $organization)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-        ]);
-
-        Household::create($request->all());
-
-        return redirect()->route('households.index')->with('success', 'Organization created successfully.');
     }
 }

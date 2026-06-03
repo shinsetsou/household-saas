@@ -1,9 +1,11 @@
 <?php
+
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\AuditLog;
 use App\Models\Expense;
 use App\Models\Organization;
+use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
 {
@@ -37,7 +39,9 @@ class ExpenseController extends Controller
             'description' => 'required|string|max:255',
         ]);
 
-        $organization->expenses()->create($validated);
+        $expense = $organization->expenses()->create($validated);
+
+        AuditLog::record($organization, 'expense.created', $request->user(), $expense, ['amount' => $expense->amount]);
 
         return redirect()->route('organizations.index', $organization)->with('success', 'Expense added successfully.');
     }

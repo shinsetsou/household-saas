@@ -1,5 +1,7 @@
 <?php
+
 // app/Models/Expense.php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,5 +16,10 @@ class Expense extends Model
     public function organization()
     {
         return $this->belongsTo(Organization::class);
+    }
+
+    public function scopeForOrganization($query, Organization $organization)
+    {
+        return $query->where('organization_id', $organization->id);
     }
 }

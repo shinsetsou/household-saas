@@ -15,13 +15,36 @@ class Contribution extends Model
         'photo',
         'status',
         'admin_verified',
+        'verification_status',
+        'rejection_reason',
+        'verified_by',
+        'verified_at',
         'reference_number',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'verified_at' => 'datetime',
+        ];
+    }
 
     public function household()
     {
         return $this->belongsTo(Household::class);
+    }
+
+    public function verifier()
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
+
+    public function scopeForOrganization($query, Organization $organization)
+    {
+        return $query->whereHas('household', function ($householdQuery) use ($organization) {
+            $householdQuery->where('organization_id', $organization->id);
+        });
     }
 }

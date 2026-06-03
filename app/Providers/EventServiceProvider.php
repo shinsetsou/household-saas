@@ -1,9 +1,10 @@
 <?php
+
 namespace App\Providers;
 
 use App\Events\ContributionCreated;
-use Illuminate\Auth\Events\Registered;
 use App\Listeners\SendContributionAddedEmail;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider
@@ -27,8 +28,5 @@ class EventServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    public function boot()
-    {
-
-    }
+    public function boot() {}
 }

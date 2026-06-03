@@ -1,16 +1,25 @@
 <?php
+
 // app/Models/Organization.php
+
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Cviebrock\EloquentSluggable\Sluggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Organization extends Model
 {
     use HasFactory, Sluggable;
 
-    protected $fillable = ['name', 'slug'];
+    protected $fillable = ['name', 'slug', 'monthly_due_amount'];
+
+    protected function casts(): array
+    {
+        return [
+            'monthly_due_amount' => 'decimal:2',
+        ];
+    }
 
     public function getRouteKeyName()
     {
@@ -21,8 +30,8 @@ class Organization extends Model
     {
         return [
             'slug' => [
-                'source' => 'name'
-            ]
+                'source' => 'name',
+            ],
         ];
     }
 
@@ -36,15 +45,22 @@ class Organization extends Model
         return $this->hasMany(Expense::class);
     }
 
+    public function users()
+    {
+        return $this->belongsToMany(User::class)
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
     public function totalContributions()
     {
-        return $this->households->flatMap->contributions->sum('amount');
+        return Contribution::forOrganization($this)->sum('amount');
     }
 
     public function yearlyContributions($year)
     {
-        return $this->households->flatMap->contributions->where('created_at', '>=', "{$year}-01-01")
-                                                      ->where('created_at', '<=', "{$year}-12-31")
-                                                      ->sum('amount');
+        return Contribution::forOrganization($this)
+            ->whereYear('created_at', $year)
+            ->sum('amount');
     }
 }

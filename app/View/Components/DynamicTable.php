@@ -9,7 +9,9 @@ use Illuminate\View\Component;
 class DynamicTable extends Component
 {
     public $columns;
+
     public $items;
+
     public $itemsPerPage;
 
     /**

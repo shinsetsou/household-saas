@@ -3,11 +3,9 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Storage;
 
 class ContributionAdded extends Mailable
 {
@@ -31,11 +29,11 @@ class ContributionAdded extends Mailable
     public function build()
     {
         $email = $this->view('emails.contribution.added')
-                      ->with('contributionData', $this->contributionData);
+            ->with('contributionData', $this->contributionData);
 
         // Attach the image if it exists
-        if (isset($this->contributionData['photo'])) {
-            $email->attachFromStorage('public/' . $this->contributionData['photo']);
+        if (! empty($this->contributionData['photo']) && Storage::disk('public')->exists($this->contributionData['photo'])) {
+            $email->attachFromStorageDisk('public', $this->contributionData['photo']);
         }
 
         return $email;
