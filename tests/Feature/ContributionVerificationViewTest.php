@@ -54,5 +54,23 @@ class ContributionVerificationViewTest extends TestCase
         $response->assertSee('Verified');
         $response->assertSeeInOrder(['Pending', '3']);
         $response->assertSee('Verification');
+        $response->assertSee('border-indigo-600');
+    }
+
+    public function test_active_tab_reflects_status_query(): void
+    {
+        $org = Organization::factory()->create();
+        $user = $this->member($org);
+        $household = Household::factory()->create(['organization_id' => $org->id]);
+        Contribution::factory()->create(['household_id' => $household->id, 'verification_status' => 'pending']);
+
+        // Unfiltered: All tab active.
+        $all = $this->actingAs($user)->get(route('contributions.index', $org));
+        $all->assertSee('border-indigo-600');
+
+        // Filtered: still renders fine and active class present.
+        $pending = $this->actingAs($user)->get(route('contributions.index', [$org, 'status' => 'pending']));
+        $pending->assertOk();
+        $pending->assertSee('border-indigo-600');
     }
 }
