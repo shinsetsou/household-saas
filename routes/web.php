@@ -4,11 +4,13 @@ use App\Http\Controllers\ContributionController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\HouseholdController;
 use App\Http\Controllers\HouseholdImportController;
+use App\Http\Controllers\Onboarding\HouseholdsStepController;
 use App\Http\Controllers\Onboarding\OrganizationStepController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Middleware\EnsureOrganizationMember;
+use App\Http\Middleware\RedirectIfOnboarded;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -33,7 +35,13 @@ require __DIR__.'/auth.php';
 Route::middleware('auth')->prefix('onboarding')->name('onboarding.')->group(function () {
     Route::get('organization', [OrganizationStepController::class, 'create'])->name('organization.create');
     Route::post('organization', [OrganizationStepController::class, 'store'])->name('organization.store');
-    Route::get('households', fn () => 'step 2 placeholder')->name('households.create'); // replaced in Task 7
+
+    Route::middleware(RedirectIfOnboarded::class)->group(function () {
+        Route::get('households', [HouseholdsStepController::class, 'create'])->name('households.create');
+        Route::post('households', [HouseholdsStepController::class, 'store'])->name('households.store');
+        Route::post('households/skip', [HouseholdsStepController::class, 'skip'])->name('households.skip');
+        Route::get('done', fn () => 'step 3 placeholder')->name('done.show'); // replaced in Task 8
+    });
 });
 
 Route::get('/{organization:slug}', [OrganizationController::class, 'show'])->name('home');
