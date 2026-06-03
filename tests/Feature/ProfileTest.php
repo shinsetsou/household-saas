@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -19,6 +20,43 @@ class ProfileTest extends TestCase
             ->get('/profile');
 
         $response->assertOk();
+    }
+
+    public function test_profile_page_uses_requested_organization_nav_context(): void
+    {
+        $user = User::factory()->create();
+        $organization = Organization::factory()->create(['name' => 'Sunshine HOA']);
+
+        $user->organizations()->attach($organization->id, ['role' => 'admin']);
+
+        $response = $this
+            ->actingAs($user)
+            ->get(route('profile.edit', ['organization' => $organization->slug]));
+
+        $response
+            ->assertOk()
+            ->assertSee('Sunshine HOA')
+            ->assertSee(route('organizations.index', $organization), false);
+    }
+
+    public function test_profile_page_falls_back_to_latest_user_organization_nav_context(): void
+    {
+        $user = User::factory()->create();
+        $older = Organization::factory()->create(['name' => 'Older HOA']);
+        $newer = Organization::factory()->create(['name' => 'Newer HOA']);
+
+        $user->organizations()->attach($older->id, ['role' => 'admin']);
+        $this->travel(1)->second();
+        $user->organizations()->attach($newer->id, ['role' => 'admin']);
+
+        $response = $this
+            ->actingAs($user)
+            ->get(route('profile.edit'));
+
+        $response
+            ->assertOk()
+            ->assertSee('Newer HOA')
+            ->assertSee(route('organizations.index', $newer), false);
     }
 
     public function test_profile_information_can_be_updated(): void

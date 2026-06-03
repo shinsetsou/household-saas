@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Organization;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
-use App\Models\Organization;
 
 class ProfileController extends Controller
 {
@@ -19,6 +19,7 @@ class ProfileController extends Controller
     {
         return view('profile.edit', [
             'user' => $request->user(),
+            'organization' => $this->resolveOrganizationContext($request),
         ]);
     }
 
@@ -35,7 +36,11 @@ class ProfileController extends Controller
 
         $request->user()->save();
 
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        $routeParameters = $request->query('organization')
+            ? ['organization' => $request->query('organization')]
+            : [];
+
+        return Redirect::route('profile.edit', $routeParameters)->with('status', 'profile-updated');
     }
 
     /**
@@ -57,5 +62,25 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return Redirect::to('/');
+    }
+
+    private function resolveOrganizationContext(Request $request): ?Organization
+    {
+        $user = $request->user();
+        $slug = $request->query('organization');
+
+        if ($slug) {
+            $organization = $user->organizations()
+                ->where('organizations.slug', $slug)
+                ->first();
+
+            if ($organization) {
+                return $organization;
+            }
+        }
+
+        return $user->organizations()
+            ->latest('organization_user.created_at')
+            ->first();
     }
 }
