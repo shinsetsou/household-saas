@@ -33,7 +33,7 @@ class ContributionController extends Controller
             ->with('household')
             ->latest()
             ->paginate(request()->input('itemsPerPage', 25))
-            ->appends(['status' => $status]);
+            ->appends(array_filter(['status' => $status]));
 
         return view('contributions.index', compact('contributions', 'organization', 'status', 'counts', 'totalCount'));
     }
