@@ -51,11 +51,23 @@ class ContributionController extends Controller
         // Logic for verifying contributions
         $itemsPerPage = request()->get('itemsPerPage', 10);
         // Retrieve contributions needing verification through households
-        $contributions = Contribution::select('contributions.reference_number', DB::raw('SUM(contributions.amount) as total_amount'), 'households.name as household_name')
+        $contributions = Contribution::select(
+            'contributions.reference_number',
+            DB::raw('SUM(contributions.amount) as total_amount'),
+            'households.name as household_name',
+            'households.block as block',
+            'households.lot as lot',
+            'contributions.photo as photo'
+            )
             ->join('households', 'contributions.household_id', '=', 'households.id')
             ->where('households.organization_id', $organization->id)
             ->where('contributions.verification_status', 'pending')
-            ->groupBy('contributions.reference_number', 'households.name')
+            ->groupBy('contributions.reference_number',
+            'households.name',
+            'households.block',
+            'households.lot',
+            'contributions.photo'
+            )
             ->paginate($itemsPerPage);
 
         return view('contributions.verify', compact('organization', 'contributions', 'itemsPerPage'));

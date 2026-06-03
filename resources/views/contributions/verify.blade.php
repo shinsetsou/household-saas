@@ -78,6 +78,7 @@
                 <tr>
                     <th class="th-cell">Reference</th>
                     <th class="th-cell">Household</th>
+                    <th class="th-cell">Receipt</th>
                     <th class="th-cell">Total Amount</th>
                     <th class="th-cell text-center">Actions</th>
                 </tr>
@@ -100,9 +101,20 @@
                                 {{ strtoupper(substr($contribution->household_name ?? '?', 0, 1)) }}
                             </span>
                             <span class="text-sm font-medium text-gray-900 capitalize">
-                                {{ $contribution->household_name ?? '—' }}
+                                {{ $contribution->household_name ?? '—' }} {{ 'Block:'. $contribution->block . 'Lot:' . $contribution->lot }}
                             </span>
                         </div>
+                    </td>
+
+                    <td class="td-cell text-center justify-content-center">
+                        @if($contribution->photo)
+                            <a href="{{ asset('storage/' . $contribution->photo) }}" target="_blank"
+                               class="inline-flex items-center justify-center w-9 h-9 rounded-lg overflow-hidden border border-gray-200 hover:ring-2 hover:ring-indigo-500 transition">
+                                <img src="{{ asset('storage/' . $contribution->photo) }}" alt="Receipt" class="w-full h-full object-cover">
+                            </a>
+                        @else
+                            <span class="text-xs text-gray-400">—</span>
+                        @endif
                     </td>
 
                     {{-- Amount --}}

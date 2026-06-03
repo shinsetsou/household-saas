@@ -18,6 +18,7 @@ class OrganizationController extends Controller
         $totalContributions = $organization->households()
             ->join('contributions', 'households.id', '=', 'contributions.household_id')
             ->whereYear('contributions.created_at', $year)
+            ->where('contributions.verification_status', 'verified')
             ->sum('contributions.amount');
 
         // Get total expenses for the organization for the specified year
