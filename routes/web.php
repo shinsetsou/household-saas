@@ -4,6 +4,7 @@ use App\Http\Controllers\ContributionController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\HouseholdController;
 use App\Http\Controllers\HouseholdImportController;
+use App\Http\Controllers\Onboarding\OrganizationStepController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
@@ -30,7 +31,9 @@ Route::middleware('auth')->group(function () {
 require __DIR__.'/auth.php';
 
 Route::middleware('auth')->prefix('onboarding')->name('onboarding.')->group(function () {
-    Route::get('organization', fn () => 'step 1 placeholder')->name('organization.create');
+    Route::get('organization', [OrganizationStepController::class, 'create'])->name('organization.create');
+    Route::post('organization', [OrganizationStepController::class, 'store'])->name('organization.store');
+    Route::get('households', fn () => 'step 2 placeholder')->name('households.create'); // replaced in Task 7
 });
 
 Route::get('/{organization:slug}', [OrganizationController::class, 'show'])->name('home');
