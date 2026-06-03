@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ContributionController;
+use App\Http\Controllers\DashboardRedirectController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\HouseholdController;
 use App\Http\Controllers\HouseholdImportController;
@@ -21,9 +22,9 @@ Route::get('/', function () {
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/terms', 'legal.terms')->name('terms');
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', DashboardRedirectController::class)
+    ->middleware('auth')
+    ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

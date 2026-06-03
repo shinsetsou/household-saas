@@ -175,4 +175,42 @@ class OnboardingTest extends TestCase
         $response->assertOk();
         $this->assertNull(session('onboarding.organization_id'));
     }
+
+    public function test_dashboard_with_zero_orgs_redirects_to_onboarding(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get('/dashboard');
+
+        $response->assertRedirect(route('onboarding.organization.create'));
+    }
+
+    public function test_dashboard_with_one_org_redirects_to_tenant_dashboard(): void
+    {
+        $user = User::factory()->create();
+        $org = Organization::factory()->create();
+        $user->organizations()->attach($org->id, ['role' => 'admin']);
+
+        $response = $this->actingAs($user)->get('/dashboard');
+
+        $response->assertRedirect(route('organizations.index', $org));
+    }
+
+    public function test_dashboard_with_multiple_orgs_redirects_to_most_recent(): void
+    {
+        $user = User::factory()->create();
+        $older = Organization::factory()->create();
+        $newer = Organization::factory()->create();
+
+        $user->organizations()->attach($older->id, ['role' => 'admin']);
+        \DB::table('organization_user')->where('organization_id', $older->id)->update([
+            'created_at' => now()->subDay(),
+            'updated_at' => now()->subDay(),
+        ]);
+        $user->organizations()->attach($newer->id, ['role' => 'admin']);
+
+        $response = $this->actingAs($user)->get('/dashboard');
+
+        $response->assertRedirect(route('organizations.index', $newer));
+    }
 }
