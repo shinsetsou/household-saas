@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Contribution;
 use App\Models\Household;
 use App\Models\Organization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -15,7 +16,8 @@ class ContributionStoreTest extends TestCase
 
     public function test_guest_resident_redirected_to_household_dashboard_not_login(): void
     {
-        Storage::fake('public');
+        // Receipts now upload to the s3/B2 disk — fake it so the test never hits real B2.
+        Storage::fake('s3');
 
         $organization = Organization::factory()->create();
         $household = Household::factory()->create([
@@ -47,5 +49,13 @@ class ContributionStoreTest extends TestCase
             'lot' => $household->lot,
         ]));
         $response->assertSessionHas('success');
+
+        // Receipt must be persisted to the s3/B2 disk, not the local public disk.
+        $contribution = Contribution::first();
+        $this->assertNotNull($contribution);
+        $this->assertNotNull($contribution->photo);
+        $this->assertStringStartsWith('contributions/', $contribution->photo);
+        Storage::disk('s3')->assertExists($contribution->photo);
+        Storage::disk('public')->assertMissing($contribution->photo);
     }
 }

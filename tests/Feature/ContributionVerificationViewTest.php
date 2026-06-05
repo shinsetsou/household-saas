@@ -136,6 +136,51 @@ class ContributionVerificationViewTest extends TestCase
         $response->assertSee('verify-badge', false);
     }
 
+    public function test_verify_view_shows_household_block_lot_and_receipt(): void
+    {
+        $org = Organization::factory()->create();
+        $user = $this->member($org);
+        $household = Household::factory()->create([
+            'organization_id' => $org->id,
+            'name' => 'Reyes',
+            'block' => 7,
+            'lot' => 42,
+        ]);
+        Contribution::factory()->create([
+            'household_id' => $household->id,
+            'reference_number' => 'ref-photo',
+            'verification_status' => 'pending',
+            'photo' => 'receipts/sample.jpg',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('contributions.verify', $org));
+
+        $response->assertOk();
+        $response->assertSee('Receipt');
+        $response->assertSee('Block:7');
+        $response->assertSee('Lot:42');
+        // Receipt is served from the s3/B2 disk URL (the key appears in the rendered URL).
+        $response->assertSee('receipts/sample.jpg', false);
+    }
+
+    public function test_verify_view_shows_dash_when_no_receipt_photo(): void
+    {
+        $org = Organization::factory()->create();
+        $user = $this->member($org);
+        $household = Household::factory()->create(['organization_id' => $org->id]);
+        Contribution::factory()->create([
+            'household_id' => $household->id,
+            'reference_number' => 'ref-nophoto',
+            'verification_status' => 'pending',
+            'photo' => null,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('contributions.verify', $org));
+
+        $response->assertOk();
+        $response->assertDontSee('receipts/', false);
+    }
+
     public function test_badge_count_does_not_leak_across_organizations(): void
     {
         $orgA = Organization::factory()->create();

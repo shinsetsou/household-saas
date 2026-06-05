@@ -166,9 +166,9 @@
                     </td>
                     <td class="td-cell text-center">
                         @if($contribution->photo)
-                            <a href="{{ asset('storage/' . $contribution->photo) }}" target="_blank"
+                            <a href="{{ $contribution->photo_url }}" target="_blank"
                                class="inline-flex items-center justify-center w-9 h-9 rounded-lg overflow-hidden border border-gray-200 hover:ring-2 hover:ring-indigo-500 transition">
-                                <img src="{{ asset('storage/' . $contribution->photo) }}" alt="Receipt" class="w-full h-full object-cover">
+                                <img src="{{ $contribution->photo_url }}" alt="Receipt" class="w-full h-full object-cover">
                             </a>
                         @else
                             <span class="text-xs text-gray-400">—</span>
