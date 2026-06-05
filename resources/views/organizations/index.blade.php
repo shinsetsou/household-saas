@@ -72,7 +72,7 @@
 
     {{-- Total Households --}}
     <a href="{{ route('households.index', $organization->slug) }}" >
-    <div class="stat-card">
+    <div class="stat-card p-2">
         <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Households</span>
             <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 text-blue-600">
@@ -87,7 +87,7 @@
     </a>
 
     {{-- Total Contributions --}}
-    <div class="stat-card">
+    <div class="stat-card p-2">
         <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Contributions</span>
             <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-green-100 text-green-600">
@@ -102,7 +102,7 @@
     </div>
 
     {{-- Total Expenses --}}
-    <div class="stat-card">
+    <div class="stat-card p-2">
         <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Expenses</span>
             <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 text-red-600">
@@ -116,7 +116,7 @@
     </div>
 
     {{-- Balance --}}
-    <div class="stat-card {{ $balance >= 0 ? '' : 'ring-1 ring-red-200' }}">
+    <div class="stat-card p-2 {{ $balance >= 0 ? '' : 'ring-1 ring-red-200' }}">
         <div class="flex items-center justify-between mb-3">
             <span class="text-xs font-semibold uppercase tracking-wider text-gray-500">Balance</span>
             <span class="flex items-center justify-center w-8 h-8 rounded-lg {{ $balance >= 0 ? 'bg-indigo-100 text-indigo-600' : 'bg-red-100 text-red-600' }}">
