@@ -53,6 +53,10 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            // Backblaze B2 buckets are Public/Private at the bucket level and reject the
+            // S3 canned ACL 'private'. Default writes to 'public' so the adapter sends
+            // 'public-read' (accepted by a public B2 bucket) instead of 'private'.
+            'visibility' => 'public',
             'throw' => env('AWS_ENABLE_THROW', false),
             'options' => [
                 'request_checksum_calculation' => 'when_required',

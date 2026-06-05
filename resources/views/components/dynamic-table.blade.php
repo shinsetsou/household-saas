@@ -41,9 +41,9 @@
                         @if($key === 'photo')
                             <td class="px-5 py-3.5 text-sm">
                                 @if($item->$key)
-                                    <a href="{{ asset('storage/' . $item->$key) }}" target="_blank"
+                                    <a href="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url($item->$key) }}" target="_blank"
                                        class="inline-flex items-center justify-center w-9 h-9 rounded-lg overflow-hidden border border-gray-200 hover:ring-2 hover:ring-indigo-500 transition">
-                                        <img src="{{ asset('storage/' . $item->$key) }}" alt="Photo" class="w-full h-full object-cover">
+                                        <img src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url($item->$key) }}" alt="Photo" class="w-full h-full object-cover">
                                     </a>
                                 @else
                                     <span class="text-xs text-gray-400">—</span>

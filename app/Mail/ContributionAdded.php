@@ -31,9 +31,9 @@ class ContributionAdded extends Mailable
         $email = $this->view('emails.contribution.added')
             ->with('contributionData', $this->contributionData);
 
-        // Attach the image if it exists
-        if (! empty($this->contributionData['photo']) && Storage::disk('public')->exists($this->contributionData['photo'])) {
-            $email->attachFromStorageDisk('public', $this->contributionData['photo']);
+        // Attach the receipt image from the S3/B2 disk if it exists
+        if (! empty($this->contributionData['photo']) && Storage::disk('s3')->exists($this->contributionData['photo'])) {
+            $email->attachFromStorageDisk('s3', $this->contributionData['photo']);
         }
 
         return $email;

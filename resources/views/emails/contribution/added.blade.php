@@ -11,7 +11,7 @@
     <p>Date: {{ now()->format('F j, Y') }}</p>
     @if (isset($contributionData['photo']))
     <p>Proof of Payment:</p>
-    <img src="{{ asset('storage/' . $contributionData['photo']) }}" alt="Proof of Payment">
+    <img src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url($contributionData['photo']) }}" alt="Proof of Payment">
     @endif
 </body>
 </html>

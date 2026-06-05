@@ -126,7 +126,7 @@ class ContributionController extends Controller
 
         $photoPath = null;
         if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('contributions', 'public');
+            $photoPath = $request->file('photo')->store('contributions', 's3');
         }
 
         $householdId = $household->id;
