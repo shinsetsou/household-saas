@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
         SentryServiceProvider::class,
     ])
     ->withMiddleware(function (Middleware $middleware) {
+        // Trust X-Forwarded-Proto / X-Forwarded-For from Railway's edge proxy
+        // so request()->getScheme() returns 'https' and url() generates https URLs.
+        $middleware->trustProxies(at: '*');
+
         $middleware->validateCsrfTokens(except: [
             'billing/webhook',
         ]);
