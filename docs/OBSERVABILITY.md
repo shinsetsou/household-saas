@@ -1,6 +1,17 @@
 # Observability (Sentry)
 
-Errors and performance traces are reported to Sentry via the official [`sentry/sentry-laravel`](https://github.com/getsentry/sentry-laravel) package. The integration is **opt-in** — set `SENTRY_LARAVEL_DSN` and you're done.
+Errors and performance traces are reported to Sentry via the official [`sentry/sentry-laravel`](https://github.com/getsentry/sentry-laravel) package. The integration is **opt-in** — install the package and set `SENTRY_LARAVEL_DSN` when you want it.
+
+## 0. Install the package
+
+The Sentry SDK is **not** in `composer.json` by default — keep the install footprint small for first deploys. When you're ready to enable Sentry:
+
+```bash
+composer require sentry/sentry-laravel
+php artisan config:clear
+```
+
+The `App\Support\SentryPiiScrubber` and `App\Providers\SentryServiceProvider` code ships with the app regardless. Both gracefully no-op when the SDK isn't installed — `SentryServiceProvider::boot()` checks `class_exists(\Sentry\Sentry::class)` before touching anything, and `SentryPiiScrubber` is only instantiated inside that guard. No fatal errors if you forget to install.
 
 ## 1. Create a Sentry project
 

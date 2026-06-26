@@ -32,9 +32,10 @@ All notable changes to this project. Newest first.
 
 ## [Unreleased] — 2026-07-01
 
-### Added — Sentry observability
+### Added — Sentry observability (optional install)
 
-- **`sentry/sentry-laravel` ^4.0** added to `composer.json`. Errors + performance traces + profiling. Errors sampled at 100% (`SENTRY_ERRORS_SAMPLE_RATE`), traces at 20% (`SENTRY_TRACES_SAMPLE_RATE`), profiles at 20% (`SENTRY_PROFILES_SAMPLE_RATE`). Tunable per env.
+- **`App\Support\SentryPiiScrubber`** + **`App\Providers\SentryServiceProvider`** + **`config/sentry.php`** ship with the app. Errors + performance traces + profiling when `sentry/sentry-laravel` is installed. Errors sampled at 100% (`SENTRY_ERRORS_SAMPLE_RATE`), traces at 20% (`SENTRY_TRACES_SAMPLE_RATE`), profiles at 20% (`SENTRY_PROFILES_SAMPLE_RATE`). Tunable per env.
+- **Sentry SDK is NOT a required composer dep** — install with `composer require sentry/sentry-laravel` when ready. The code degrades to a no-op when the package is absent (`SentryServiceProvider::boot()` checks `class_exists` first).
 - **`config/sentry.php`** — env-driven. Lists ignored exceptions (`AuthenticationException`, `ValidationException`, `HttpException`) and ignored transactions (`/up`, `/billing/webhook`).
 - **`App\Support\SentryPiiScrubber`** (`app/Support/SentryPiiScrubber.php`) — Sentry event processor that strips sensitive fields (passwords, tokens, PayMongo/AWS secrets, card-shaped numbers, etc.) recursively from breadcrumbs, request data, extras, and user context.
 - **`App\Providers\SentryServiceProvider`** — registered via `bootstrap/app.php`. Registers the scrubber as a Sentry event processor and is a no-op when the SDK is absent or `SENTRY_LARAVEL_DSN` is unset.

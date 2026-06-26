@@ -162,6 +162,6 @@ Default uses SQLite (`database/database.sqlite`). Docker Compose spins up MySQL 
 
 ## Observability
 
-- Errors and traces ship to Sentry via `sentry/sentry-laravel` (see `docs/OBSERVABILITY.md`). The integration is opt-in — set `SENTRY_LARAVEL_DSN` and you're done.
+- Errors and traces ship to Sentry via `sentry/sentry-laravel` (see `docs/OBSERVABILITY.md`). **The SDK is optional** — `composer require sentry/sentry-laravel` when you're ready to enable. `App\Providers\SentryServiceProvider` guards with `class_exists` so the app boots fine without it.
 - `App\Support\SentryPiiScrubber` strips passwords, tokens, PayMongo/AWS secrets, and card-shaped numbers from every event before it leaves the app. Registered via `App\Providers\SentryServiceProvider`.
 - Set `SENTRY_RELEASE` to your deploy SHA so errors group by release.
