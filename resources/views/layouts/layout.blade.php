@@ -78,7 +78,7 @@
 
             <!-- Nav links — only when an organization context exists -->
             @if($navContext->organization)
-            <div class="hidden sm:flex items-center gap-1 flex-1 ml-2">
+            <div class="hidden sm:flex items-center gap-1 flex-1 ml-3">
                 @auth
                     <a href="{{ route('organizations.index', $navContext->organization->slug) }}"
                        class="nav-link {{ request()->routeIs('organizations.index') ? 'nav-link-active' : '' }}">
@@ -267,13 +267,25 @@
         @endif
     </nav>
 
-    <!-- Nav link styles — gradient pill active state to match the rest of the system. -->
+    <!-- Nav link styles — underline + colored text active state. -->
     <style>
         .nav-link {
-            @apply px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors;
+            @apply relative inline-flex items-center px-1 pt-2.5 pb-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors;
+        }
+        /* Brand-colored underline that fades in on hover and stays for active. */
+        .nav-link::after {
+            content: '';
+            @apply absolute left-0 right-0 bottom-0 h-0.5 rounded-full bg-brand-600 dark:bg-brand-500 origin-center transition-transform duration-200;
+            transform: scaleX(0);
+        }
+        .nav-link:hover::after {
+            transform: scaleX(0.6);
         }
         .nav-link-active {
-            @apply text-white bg-gradient-to-r from-brand-600 to-violet-600 shadow-sm hover:from-brand-700 hover:to-violet-700 hover:text-white dark:hover:text-white;
+            @apply text-brand-700 dark:text-brand-300;
+        }
+        .nav-link-active::after {
+            transform: scaleX(1);
         }
         .mobile-nav-link {
             @apply block px-3 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors;

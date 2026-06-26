@@ -163,7 +163,7 @@ class UserDropdownTest extends TestCase
         );
     }
 
-    public function test_active_nav_link_uses_gradient_pill(): void
+    public function test_active_nav_link_uses_brand_color_and_underline(): void
     {
         $user = User::factory()->create();
         $org = Organization::factory()->create();
@@ -172,8 +172,9 @@ class UserDropdownTest extends TestCase
         $response = $this->actingAs($user)->get(route('organizations.index', $org));
 
         $response->assertOk();
-        // Active link renders the brand->violet gradient.
-        $response->assertSee('from-brand-600 to-violet-600', false);
+        // Active link uses brand-colored text + an underline pseudo-element.
+        $response->assertSee('nav-link-active', false);
+        $response->assertSee('text-brand-700', false);
     }
 
     public function test_navbar_uses_backdrop_blur(): void
