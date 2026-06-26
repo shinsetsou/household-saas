@@ -14,9 +14,15 @@ class ExpenseController extends Controller
     {
         $itemsPerPage = $request->input('itemsPerPage', 10);
 
-        $expenses = Expense::forOrganization($organization)
-            ->when($request->filled('month'), fn ($query) => $query->whereMonth('created_at', $request->month))
-            ->when($request->filled('year'), fn ($query) => $query->whereYear('created_at', $request->year))
+        $query = Expense::forOrganization($organization)
+            ->when($request->filled('month'), fn ($q) => $q->whereMonth('created_at', $request->month))
+            ->when($request->filled('year'), fn ($q) => $q->whereYear('created_at', $request->year));
+
+        $filteredTotal = (clone $query)->sum('amount');
+        $filteredCount = (clone $query)->count();
+        $largest = (clone $query)->orderByDesc('amount')->first();
+
+        $expenses = (clone $query)
             ->orderBy('created_at', 'desc')
             ->paginate($itemsPerPage)
             ->appends(array_filter([
@@ -25,7 +31,19 @@ class ExpenseController extends Controller
                 'year' => $request->input('year'),
             ]));
 
-        return view('expenses.index', compact('organization', 'expenses', 'itemsPerPage'));
+        $ytdTotal = Expense::forOrganization($organization)
+            ->whereYear('created_at', now()->year)
+            ->sum('amount');
+
+        return view('expenses.index', compact(
+            'organization',
+            'expenses',
+            'itemsPerPage',
+            'filteredTotal',
+            'filteredCount',
+            'largest',
+            'ytdTotal',
+        ));
     }
 
     public function create(Organization $organization)

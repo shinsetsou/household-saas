@@ -43,6 +43,65 @@ class OrganizationController extends Controller
         $delinquentHouseholds = count($delinquencyService->forOrganization($organization, now()->year, now()->month));
         $expectedMonthly = $organization->households()->count() * (float) $organization->monthly_due_amount;
 
+        // Last 6 months of verified contributions — used for the trend sparkline.
+        $monthlyTrend = collect();
+        for ($i = 5; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $sum = $organization->households()
+                ->join('contributions', 'households.id', '=', 'contributions.household_id')
+                ->whereMonth('contributions.created_at', $date->month)
+                ->whereYear('contributions.created_at', $date->year)
+                ->where('contributions.verification_status', 'verified')
+                ->sum('contributions.amount');
+            $monthlyTrend->push([
+                'label' => $date->format('M'),
+                'total' => (float) $sum,
+            ]);
+        }
+        $trendMax = max($monthlyTrend->pluck('total')->max() ?: 1, 1);
+
+        // Recent activity feed (contributions + expenses merged, last 6).
+        $recentContributions = \App\Models\Contribution::forOrganization($organization)
+            ->with('household')
+            ->latest('created_at')
+            ->limit(6)
+            ->get()
+            ->map(fn ($c) => [
+                'type' => 'contribution',
+                'label' => $c->household?->name ?? 'Unknown household',
+                'sub' => 'Contribution · '.$c->verification_status,
+                'amount' => (float) $c->amount,
+                'when' => $c->created_at,
+            ]);
+
+        $recentExpenses = $organization->expenses()
+            ->latest('created_at')
+            ->limit(6)
+            ->get()
+            ->map(fn ($e) => [
+                'type' => 'expense',
+                'label' => $e->description,
+                'sub' => 'Expense',
+                'amount' => -(float) $e->amount,
+                'when' => $e->created_at,
+            ]);
+
+        $recentActivity = $recentContributions
+            ->merge($recentExpenses)
+            ->sortByDesc('when')
+            ->take(6)
+            ->values();
+
+        // Top 5 members by verified paid total this year.
+        $topHouseholds = $organization->households()
+            ->withSum(['contributions as verified_total' => function ($q) use ($year) {
+                $q->whereYear('contributions.created_at', $year)
+                    ->where('contributions.verification_status', 'verified');
+            }], 'amount')
+            ->orderByDesc('verified_total')
+            ->limit(5)
+            ->get();
+
         return view('organizations.index', compact(
             'organization',
             'year',
@@ -51,7 +110,11 @@ class OrganizationController extends Controller
             'currentMonthPaid',
             'currentMonthPending',
             'delinquentHouseholds',
-            'expectedMonthly'
+            'expectedMonthly',
+            'monthlyTrend',
+            'trendMax',
+            'recentActivity',
+            'topHouseholds'
         ));
     }
 

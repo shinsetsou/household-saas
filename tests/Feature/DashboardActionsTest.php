@@ -22,11 +22,11 @@ class DashboardActionsTest extends TestCase
         $response = $this->actingAs($user)->get(route('organizations.index', $org));
 
         $response->assertOk();
-        $response->assertSee('Add Household', false);
+        $response->assertSee('Add household', false);
         $response->assertSee(route('households.create', $org->slug), false);
     }
 
-    public function test_dashboard_shows_import_csv_button(): void
+    public function test_dashboard_renders_hero_and_stat_tiles(): void
     {
         $user = User::factory()->create();
         $org = Organization::factory()->create();
@@ -35,8 +35,16 @@ class DashboardActionsTest extends TestCase
         $response = $this->actingAs($user)->get(route('organizations.index', $org));
 
         $response->assertOk();
-        $response->assertSee('Import CSV', false);
-        $response->assertSee(route('households.import.create', $org->slug), false);
+        // Hero
+        $response->assertSee($org->name, false);
+        $response->assertSee('Organization overview', false);
+        // Stat tiles
+        $response->assertSee('Households', false);
+        $response->assertSee('Balance', false);
+        $response->assertSee('This month', false);
+        // New enhancement blocks
+        $response->assertSee('Top contributors', false);
+        $response->assertSee('Recent activity', false);
     }
 
     public function test_total_contributions_counts_only_verified(): void
@@ -69,5 +77,35 @@ class DashboardActionsTest extends TestCase
         $response->assertSee('150.00');
         $response->assertDontSee('900.00');
         $response->assertDontSee('1,750.00');
+    }
+
+    public function test_dashboard_renders_recent_activity_and_top_contributors(): void
+    {
+        $user = User::factory()->create();
+        $org = Organization::factory()->create();
+        $user->organizations()->attach($org->id, ['role' => 'admin']);
+
+        $household = Household::factory()->create([
+            'organization_id' => $org->id,
+            'name' => 'Cruz Family',
+        ]);
+        Contribution::factory()->create([
+            'household_id' => $household->id,
+            'amount' => 500,
+            'verification_status' => 'verified',
+        ]);
+        \App\Models\Expense::create([
+            'organization_id' => $org->id,
+            'amount' => 120,
+            'description' => 'Hall light bulb',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('organizations.index', $org));
+
+        $response->assertOk();
+        $response->assertSee('Cruz Family', false);
+        $response->assertSee('Hall light bulb', false);
+        $response->assertSee('Top contributors', false);
+        $response->assertSee('Recent activity', false);
     }
 }

@@ -20,6 +20,23 @@ class ExpenseFilterTest extends TestCase
         return $user;
     }
 
+    public function test_expenses_index_renders_stat_tiles(): void
+    {
+        $org = Organization::factory()->create();
+        $user = $this->actingMember($org);
+        Expense::factory()->create(['organization_id' => $org->id, 'amount' => 250, 'description' => 'Hall cleaning']);
+        Expense::factory()->create(['organization_id' => $org->id, 'amount' => 100, 'description' => 'Light bulbs']);
+
+        $response = $this->actingAs($user)->get(route('expenses.index', $org));
+
+        $response->assertOk();
+        $response->assertSee('Total expenses', false);
+        $response->assertSee('Total entries', false);
+        $response->assertSee('Year-to-date', false);
+        // Filtered sum should be 350.00 (formatted with thousands separator by number_format(0))
+        $response->assertSee('350', false);
+    }
+
     public function test_empty_filter_values_show_all_expenses(): void
     {
         $org = Organization::factory()->create();

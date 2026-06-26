@@ -30,14 +30,31 @@ class ContributionController extends Controller
 
         $totalCount = (int) $counts->sum();
 
-        $contributions = Contribution::forOrganization($organization)
-            ->when($status, fn ($query) => $query->where('verification_status', $status))
+        $query = Contribution::forOrganization($organization)
             ->with('household')
-            ->latest()
-            ->paginate(request()->input('itemsPerPage', 25))
+            ->latest();
+
+        if ($status) {
+            $query->where('verification_status', $status);
+        }
+
+        $contributions = $query->paginate(request()->input('itemsPerPage', 25))
             ->appends(array_filter(['status' => $status]));
 
-        return view('contributions.index', compact('contributions', 'organization', 'status', 'counts', 'totalCount'));
+        $filteredTotal = (clone $query)->sum('amount');
+        $verifiedTotal = Contribution::forOrganization($organization)
+            ->where('verification_status', 'verified')
+            ->sum('amount');
+
+        return view('contributions.index', compact(
+            'contributions',
+            'organization',
+            'status',
+            'counts',
+            'totalCount',
+            'filteredTotal',
+            'verifiedTotal',
+        ));
     }
 
     //
