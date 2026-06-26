@@ -1,148 +1,132 @@
 @extends('layouts.layout')
 
-@section('title', 'Add Contribution — ' . $household->name)
+@section('title', 'Submit Payment — ' . $household->name)
 
 @section('content')
 
-{{-- Breadcrumb --}}
-<nav class="flex items-center gap-2 text-xs text-gray-500 mb-6">
-    <a href="{{ route('organizations.index', $organization->slug) }}" class="hover:text-indigo-600 transition-colors">Dashboard</a>
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
-    <a href="{{ route('home', $organization->slug) }}" class="hover:text-indigo-600 transition-colors">Households</a>
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
-    <a href="{{ route('households.show', [$organization, $household]) }}" class="hover:text-indigo-600 transition-colors">{{ $household->name }}</a>
-    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
-    <span class="text-gray-700 font-medium">Add Contribution</span>
+<nav class="flex items-center gap-2 text-xs text-slate-500 mb-4">
+    <a href="{{ route('home', $organization->slug) }}" class="hover:text-brand-600 transition-colors">Household lookup</a>
+    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>
+    <span class="text-slate-700 font-medium">{{ $household->name }}</span>
+    <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>
+    <span class="text-slate-700 font-medium">Submit payment</span>
 </nav>
 
-<div class="max-w-lg mx-auto">
-    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+<x-page-header
+    :eyebrow="$household->name . ' · Block '.$household->block.' · Lot '.$household->lot"
+    title="Submit payment"
+    subtitle="Upload a photo of your receipt so the treasurer can verify your payment."
+    tone="emerald"
+    icon="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z">
+    <x-slot:actions>
+        <x-brand-button variant="secondary" :href="route('home', $organization->slug)" icon="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z">Find another</x-brand-button>
+    </x-slot:actions>
+</x-page-header>
 
-        {{-- Card header --}}
-        <div class="px-6 py-5 border-b border-gray-100">
-            <div class="flex items-center gap-3">
-                <span class="flex items-center justify-center w-9 h-9 rounded-lg bg-indigo-100 text-indigo-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z"/>
-                        <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd"/>
-                    </svg>
-                </span>
-                <div>
-                    <h1 class="text-base font-semibold text-gray-900">Add Contribution</h1>
-                    <p class="text-xs text-gray-500 capitalize">{{ $household->name }}</p>
-                </div>
+<div class="mt-8 max-w-2xl mx-auto">
+    <div class="rounded-2xl bg-white dark:bg-gray-800 ring-1 ring-slate-200 dark:ring-slate-700 shadow-sm overflow-hidden">
+
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+            <span class="flex-shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </span>
+            <div>
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white">Payment details</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">All fields except billing month are required.</p>
             </div>
         </div>
 
-        {{-- Form --}}
         <form action="{{ URL::signedRoute('contributions.store', [$organization, $household]) }}" method="POST"
-              enctype="multipart/form-data" id="contribution-form" class="px-6 py-6 space-y-5">
+              enctype="multipart/form-data"
+              id="contribution-form"
+              x-data="{ submitting: false }"
+              @submit="submitting = true"
+              class="px-6 py-6 space-y-5">
             @csrf
 
             {{-- Amount --}}
             <div>
-                <label for="amount" class="form-label">
-                    Amount
-                    <span class="text-red-500">*</span>
+                <label for="amount" class="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Amount <span class="text-rose-500">*</span>
                 </label>
-                <div class="relative mt-1.5">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 font-medium text-sm pointer-events-none">&#8369;</span>
+                <div class="relative mt-2">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 font-semibold text-sm pointer-events-none">₱</span>
                     <input type="number" name="amount" id="amount"
                            value="{{ old('amount') }}"
                            placeholder="0.00"
                            step="0.01" min="0"
-                           class="form-input pl-8 @error('amount') form-input-error @enderror"
+                           class="block w-full pl-9 pr-4 py-3 text-base font-semibold rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:bg-white dark:focus:bg-slate-900 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 focus:outline-none"
                            required>
                 </div>
-                <p class="mt-1.5 text-xs text-gray-500">Monthly due is &#8369;{{ number_format($organization->monthly_due_amount, 2) }}. Overpayments are automatically split into months.</p>
-                @error('amount')
-                    <p class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                        </svg>
-                        {{ $message }}
-                    </p>
-                @enderror
+                <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    Monthly due is <span class="font-semibold text-slate-700 dark:text-slate-200">₱{{ number_format($organization->monthly_due_amount, 2) }}</span>.
+                    Overpayments are automatically split into future months.
+                </p>
+                @error('amount')<p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p>@enderror
             </div>
 
             {{-- Billing month --}}
             <div>
-                <label for="month_for" class="form-label">
-                    Billing Month
-                </label>
+                <label for="month_for" class="block text-sm font-medium text-slate-700 dark:text-slate-200">Billing month</label>
                 <input type="month" name="month_for" id="month_for"
                        value="{{ old('month_for', now()->format('Y-m')) }}"
                        max="{{ now()->format('Y-m') }}"
-                       class="form-input mt-1.5 @error('month_for') form-input-error @enderror">
-                <p class="mt-1.5 text-xs text-gray-500">Which month should this payment be credited to? Defaults to the current month. Treasurer can correct this during verification.</p>
-                @error('month_for')
-                    <p class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                        </svg>
-                        {{ $message }}
-                    </p>
-                @enderror
+                       class="mt-2 block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-sm focus:bg-white dark:focus:bg-slate-900 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 focus:outline-none">
+                <p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">
+                    Defaults to the current month. Pick an earlier month if you're paying arrears — the treasurer can correct this during verification.
+                </p>
+                @error('month_for')<p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p>@enderror
             </div>
 
             {{-- Photo upload --}}
             <div>
-                <label for="photo" class="form-label">
-                    Proof of Payment
-                    <span class="text-red-500">*</span>
+                <label for="photo" class="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                    Proof of payment <span class="text-rose-500">*</span>
                 </label>
-                <p class="text-xs text-gray-500 mb-2">Upload a photo of the receipt or payment slip (JPG, PNG, GIF — max 2MB).</p>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    JPG, PNG, or GIF up to 2 MB. A clear photo of the receipt speeds up verification.
+                </p>
 
-                {{-- Upload area --}}
                 <label for="photo" id="upload-area"
-                       class="relative flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-indigo-400 bg-gray-50 hover:bg-gray-100 transition-colors">
+                       class="relative mt-2 flex flex-col items-center justify-center w-full h-44 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl cursor-pointer hover:border-brand-400 bg-slate-50 dark:bg-slate-900 hover:bg-brand-50/40 dark:hover:bg-brand-900/20 transition-colors">
                     <div id="upload-placeholder" class="flex flex-col items-center gap-2 pointer-events-none">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
-                        </svg>
-                        <p class="text-sm text-gray-500"><span class="font-medium text-indigo-600">Click to upload</span> or drag & drop</p>
-                        <p class="text-xs text-gray-400">JPEG, PNG, GIF up to 2MB</p>
+                        <span class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 text-brand-500">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        </span>
+                        <p class="text-sm text-slate-700 dark:text-slate-200">
+                            <span class="font-semibold text-brand-600">Click to upload</span> or drag and drop
+                        </p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">JPEG, PNG, GIF up to 2MB</p>
                     </div>
-                    <img id="imagePreview" class="absolute inset-0 w-full h-full object-contain rounded-xl hidden p-1" alt="Preview">
+                    <img id="imagePreview" class="absolute inset-0 w-full h-full object-contain rounded-2xl hidden p-2" alt="Preview">
                     <input type="file" name="photo" id="photo" accept="image/jpeg,image/png,image/gif"
                            class="sr-only" required onchange="previewImage(event)">
                 </label>
 
-                @error('photo')
-                    <p class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                        </svg>
-                        {{ $message }}
-                    </p>
-                @enderror
+                @error('photo')<p class="mt-1.5 text-xs text-rose-600">{{ $message }}</p>@enderror
             </div>
 
             {{-- Actions --}}
             <div class="flex gap-3 pt-2">
-                <a href="{{ route('households.show', [$organization, $household]) }}"
-                   class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                <a href="{{ route('home', $organization->slug) }}"
+                   class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition">
                     Cancel
                 </a>
-                <button type="submit" id="submit-btn"
-                        class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" id="submit-icon" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
-                    </svg>
-                    <span id="submit-label">Submit Contribution</span>
+                <button type="submit" id="submit-btn" :disabled="submitting"
+                        class="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-4 py-3 text-sm font-semibold text-white shadow-brand-glow hover:from-emerald-600 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 transition disabled:opacity-60 disabled:cursor-not-allowed">
+                    <span x-show="!submitting">Submit contribution</span>
+                    <span x-show="submitting" x-cloak>Submitting…</span>
+                    <svg x-show="!submitting" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
                 </button>
             </div>
         </form>
     </div>
-</div>
 
-<style>
-    .form-label { @apply block text-sm font-medium text-gray-700 }
-    .form-input {
-        @apply w-full px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition;
-    }
-    .form-input-error { @apply border-red-400 focus:ring-red-500; }
-</style>
+    <p class="mt-4 text-center text-xs text-slate-400 dark:text-slate-500">
+        Your treasurer will review your payment and mark it as verified.
+        You'll receive a confirmation email once approved.
+    </p>
+</div>
 
 <script>
     function previewImage(event) {
@@ -161,16 +145,6 @@
             reader.readAsDataURL(input.files[0]);
         }
     }
-
-    // Loading state on submit
-    document.getElementById('contribution-form').addEventListener('submit', function () {
-        const btn = document.getElementById('submit-btn');
-        const label = document.getElementById('submit-label');
-        const icon = document.getElementById('submit-icon');
-        btn.disabled = true;
-        label.textContent = 'Submitting…';
-        icon.innerHTML = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>';
-    });
 </script>
 
 @endsection

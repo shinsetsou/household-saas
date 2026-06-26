@@ -26,11 +26,12 @@ class HouseholdController extends Controller
             $itemsPerPage = $request->input('itemsPerPage', 10); // Default to 10 items per page
             $contributions = $household->contributions()->orderBy('created_at', 'desc')->paginate($itemsPerPage);
 
-            $totals = $this->totalsFor($household, $organization);
-
+            // Public block+lot lookup route also renders the show view, so it
+            // needs the same household stats that the dedicated show() method passes.
             return view('households.show', array_merge(
                 compact('household', 'contributions', 'itemsPerPage', 'organization'),
-                $totals
+                $this->totalsFor($household, $organization),
+                $this->statsFor($household),
             ));
         }
 
@@ -73,11 +74,10 @@ class HouseholdController extends Controller
         $itemsPerPage = $request->input('itemsPerPage', 10); // Default to 10 items per page
         $contributions = $household->contributions()->orderBy('created_at', 'desc')->paginate($itemsPerPage);
 
-        $totals = $this->totalsFor($household, $organization);
-
         return view('households.show', array_merge(
             compact('household', 'contributions', 'itemsPerPage', 'organization'),
-            $totals
+            $this->totalsFor($household, $organization),
+            $this->statsFor($household),
         ));
     }
 
@@ -129,5 +129,30 @@ class HouseholdController extends Controller
         );
 
         return compact('totalContributions', 'totalExpenses');
+    }
+
+    /**
+     * Per-household verification stats used by the show view's stat tiles.
+     * Shared by HouseholdController::show and the public block+lot lookup
+     * path inside index(), both of which render households.show.
+     */
+    private function statsFor(Household $household): array
+    {
+        // `max(created_at)` returns the raw DB string in some drivers (e.g.
+        // MySQL when the column isn't selected through the cast), so wrap it
+        // in Carbon::parse so the view can call ->diffForHumans() safely.
+        $lastPaidRaw = $household->contributions()
+            ->where('verification_status', 'verified')
+            ->max('created_at');
+
+        return [
+            'verifiedCount' => $household->contributions()
+                ->where('verification_status', 'verified')
+                ->count(),
+            'pendingCount' => $household->contributions()
+                ->where('verification_status', 'pending')
+                ->count(),
+            'lastPaidAt' => $lastPaidRaw ? \Illuminate\Support\Carbon::parse($lastPaidRaw) : null,
+        ];
     }
 }

@@ -14,9 +14,51 @@ class ReportController extends Controller
 {
     public function contributions(Request $request, Organization $organization)
     {
-        $contributions = $this->contributionQuery($request, $organization)->paginate(25);
+        $contributions = $this->contributionQuery($request, $organization)->paginate(25)->withQueryString();
 
-        return view('reports.contributions', compact('organization', 'contributions'));
+        $year = (int) $request->input('year', now()->year);
+        $month = $request->input('month');
+
+        $verifiedTotal = (clone $this->contributionQuery($request, $organization))
+            ->where('contributions.verification_status', 'verified')
+            ->sum('amount');
+        $verifiedCount = (clone $this->contributionQuery($request, $organization))
+            ->where('contributions.verification_status', 'verified')
+            ->count();
+        $pendingCount = (clone $this->contributionQuery($request, $organization))
+            ->where('contributions.verification_status', 'pending')
+            ->count();
+        $rejectedCount = (clone $this->contributionQuery($request, $organization))
+            ->where('contributions.verification_status', 'rejected')
+            ->count();
+
+        // 12-month breakdown for the chart.
+        $monthly = collect();
+        for ($i = 11; $i >= 0; $i--) {
+            $d = now()->subMonths($i);
+            $monthly->push([
+                'label' => $d->format('M'),
+                'total' => (float) Contribution::forOrganization($organization)
+                    ->whereMonth('contributions.created_at', $d->month)
+                    ->whereYear('contributions.created_at', $d->year)
+                    ->where('contributions.verification_status', 'verified')
+                    ->sum('amount'),
+            ]);
+        }
+        $monthlyMax = max($monthly->pluck('total')->max() ?: 1, 1);
+
+        return view('reports.contributions', compact(
+            'organization',
+            'contributions',
+            'year',
+            'month',
+            'verifiedTotal',
+            'verifiedCount',
+            'pendingCount',
+            'rejectedCount',
+            'monthly',
+            'monthlyMax',
+        ));
     }
 
     public function contributionsPdf(Request $request, Organization $organization)
@@ -45,9 +87,42 @@ class ReportController extends Controller
 
     public function expenses(Request $request, Organization $organization)
     {
-        $expenses = $this->expenseQuery($request, $organization)->paginate(25);
+        $expenses = $this->expenseQuery($request, $organization)->paginate(25)->withQueryString();
 
-        return view('reports.expenses', compact('organization', 'expenses'));
+        $year = (int) $request->input('year', now()->year);
+        $month = $request->input('month');
+
+        $filteredTotal = (clone $this->expenseQuery($request, $organization))->sum('amount');
+        $filteredCount = (clone $this->expenseQuery($request, $organization))->count();
+        $ytdTotal = Expense::forOrganization($organization)
+            ->whereYear('created_at', now()->year)
+            ->sum('amount');
+
+        // 12-month breakdown.
+        $monthly = collect();
+        for ($i = 11; $i >= 0; $i--) {
+            $d = now()->subMonths($i);
+            $monthly->push([
+                'label' => $d->format('M'),
+                'total' => (float) Expense::forOrganization($organization)
+                    ->whereMonth('created_at', $d->month)
+                    ->whereYear('created_at', $d->year)
+                    ->sum('amount'),
+            ]);
+        }
+        $monthlyMax = max($monthly->pluck('total')->max() ?: 1, 1);
+
+        return view('reports.expenses', compact(
+            'organization',
+            'expenses',
+            'year',
+            'month',
+            'filteredTotal',
+            'filteredCount',
+            'ytdTotal',
+            'monthly',
+            'monthlyMax',
+        ));
     }
 
     public function expensesPdf(Request $request, Organization $organization)
@@ -74,13 +149,26 @@ class ReportController extends Controller
 
     public function delinquency(Request $request, Organization $organization, DelinquencyService $service)
     {
-        $rows = $service->forOrganization(
-            $organization,
-            (int) $request->input('year', now()->year),
-            (int) $request->input('month', now()->month)
-        );
+        $year = (int) $request->input('year', now()->year);
+        $month = (int) $request->input('month', now()->month);
 
-        return view('reports.delinquency', compact('organization', 'rows'));
+        $rows = $service->forOrganization($organization, $year, $month);
+
+        $totalDue = collect($rows)->sum(fn ($r) => $r['amount_due']);
+        $delinquentCount = count($rows);
+        $totalHouseholds = $organization->households()->count();
+        $healthyPct = $totalHouseholds > 0 ? round((($totalHouseholds - $delinquentCount) / $totalHouseholds) * 100) : 100;
+
+        return view('reports.delinquency', compact(
+            'organization',
+            'rows',
+            'year',
+            'month',
+            'totalDue',
+            'delinquentCount',
+            'totalHouseholds',
+            'healthyPct',
+        ));
     }
 
     public function delinquencyCsv(Request $request, Organization $organization, DelinquencyService $service): StreamedResponse

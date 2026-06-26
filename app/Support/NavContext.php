@@ -21,6 +21,7 @@ class NavContext
         public ?User $user,
         public ?OrganizationRole $role,
         public bool $isAdmin,
+        public bool $canVerify,
         public string $userInitials,
     ) {
     }
@@ -40,6 +41,7 @@ class NavContext
             user: $user,
             role: $role,
             isAdmin: $role === OrganizationRole::Admin,
+            canVerify: $role !== null && in_array($role, [OrganizationRole::Admin, OrganizationRole::Treasurer], true),
             userInitials: $initials ?: '?',
         );
     }

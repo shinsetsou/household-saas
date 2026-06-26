@@ -62,180 +62,204 @@
 <body class="h-full bg-gray-50 text-gray-900 antialiased">
 
     <!-- ===== TOP NAVBAR ===== -->
-    <nav class="fixed top-0 inset-x-0 z-40 h-14 bg-white border-b border-gray-200 shadow-sm">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between gap-4">
+    <nav class="fixed top-0 inset-x-0 z-40 h-16 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200/70 dark:border-slate-800/70 shadow-sm">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex items-center gap-4">
 
             <!-- Brand -->
-            <a href="javascript:void(0)" class="flex items-center gap-2.5 flex-shrink-0 group">
-                <!-- Simple house icon -->
-                <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-600 text-white shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4.5 h-4.5" viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
-                    </svg>
+            <a href="{{ $navContext->organization ? route('organizations.index', $navContext->organization->slug) : url('/') }}"
+               class="flex items-center gap-2.5 flex-shrink-0 group">
+                <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-violet-600 text-white font-bold shadow-sm shadow-brand-900/20 ring-1 ring-brand-700/10 group-hover:shadow-brand-glow transition">
+                    <span class="text-sm">B</span>
                 </span>
-                <span class="text-base font-semibold text-gray-900 tracking-tight">BarangayBooks</span>
+                <span class="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">
+                    Barangay<span class="text-brand-600 dark:text-brand-500">Books</span>
+                </span>
             </a>
 
-            <!-- Nav links (center / left-of-center) — only shown when organization context exists -->
+            <!-- Nav links — only when an organization context exists -->
             @if($navContext->organization)
-            <div class="hidden sm:flex items-center gap-3 flex-1 ml-4">
+            <div class="hidden sm:flex items-center gap-1 flex-1 ml-2">
                 @auth
-                <a href="{{ route('organizations.index', $navContext->organization->slug) }}"
-                   class="nav-link {{ request()->routeIs('organizations.index') ? 'nav-link-active' : '' }}">
-                    Dashboard
-                </a>
+                    <a href="{{ route('organizations.index', $navContext->organization->slug) }}"
+                       class="nav-link {{ request()->routeIs('organizations.index') ? 'nav-link-active' : '' }}">
+                        Dashboard
+                    </a>
 
-                <a href="{{ route('contributions.index', $navContext->organization->slug) }}"
-                   class="nav-link {{ request()->routeIs('contributions.index') ? 'nav-link-active' : '' }}">
-                    Contributions
-                </a>
+                    <a href="{{ route('home', $navContext->organization->slug) }}"
+                       class="nav-link {{ request()->routeIs('home') || request()->routeIs('households.*') ? 'nav-link-active' : '' }}">
+                        Households
+                    </a>
 
-                <a href="{{ route('expenses.index', $navContext->organization->slug) }}"
-                   class="nav-link {{ request()->routeIs('expenses.index') ? 'nav-link-active' : '' }}">
-                    Expenses
-                </a>
+                    <a href="{{ route('contributions.index', $navContext->organization->slug) }}"
+                       class="nav-link {{ request()->routeIs('contributions.index') ? 'nav-link-active' : '' }}">
+                        Contributions
+                    </a>
 
-                <a href="{{ route('contributions.verify', $navContext->organization->slug) }}"
-                   class="nav-link inline-flex items-center gap-1.5 {{ request()->routeIs('contributions.verify') ? 'nav-link-active' : '' }}">
-                    Verify
-                    @if(($pendingVerificationCount ?? 0) > 0)
-                        <span class="verify-badge inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-600 text-white text-xs font-semibold"
-                              data-count="{{ $pendingVerificationCount }}">
-                            {{ $pendingVerificationCount }}
-                        </span>
+                    <a href="{{ route('expenses.index', $navContext->organization->slug) }}"
+                       class="nav-link {{ request()->routeIs('expenses.*') ? 'nav-link-active' : '' }}">
+                        Expenses
+                    </a>
+
+                    @if($navContext->canVerify)
+                        <a href="{{ route('contributions.verify', $navContext->organization->slug) }}"
+                           class="nav-link inline-flex items-center gap-1.5 {{ request()->routeIs('contributions.verify*') ? 'nav-link-active' : '' }}">
+                            Verify
+                            @if(($pendingVerificationCount ?? 0) > 0)
+                                <span class="relative inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-600 text-white text-[11px] font-bold"
+                                      data-count="{{ $pendingVerificationCount }}">
+                                    {{ $pendingVerificationCount }}
+                                    <span class="absolute inset-0 rounded-full bg-rose-600 opacity-75 animate-ping"></span>
+                                </span>
+                            @endif
+                        </a>
                     @endif
-                </a>
+
+                    {{-- Reports dropdown --}}
+                    <div x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false" class="relative">
+                        <button type="button"
+                                @click="open = !open"
+                                :aria-expanded="open"
+                                class="nav-link inline-flex items-center gap-1 {{ request()->routeIs('reports.*') ? 'nav-link-active' : '' }}">
+                            Reports
+                            <svg class="w-3.5 h-3.5 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <div x-show="open" x-cloak x-transition
+                             class="absolute left-0 mt-2 w-56 rounded-xl bg-white dark:bg-slate-900 shadow-lg ring-1 ring-slate-200 dark:ring-slate-700 py-1.5 z-50">
+                            <a href="{{ route('reports.contributions.index', $navContext->organization->slug) }}"
+                               class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
+                                <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                                Contributions report
+                            </a>
+                            <a href="{{ route('reports.expenses.index', $navContext->organization->slug) }}"
+                               class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
+                                <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l-4-4 4-4m6 8l4-4-4-4"/></svg>
+                                Expenses report
+                            </a>
+                            <a href="{{ route('reports.delinquency.index', $navContext->organization->slug) }}"
+                               class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800">
+                                <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                Delinquency report
+                            </a>
+                        </div>
+                    </div>
                 @endauth
             </div>
             @endif
 
             <!-- Right actions -->
             <div class="flex items-center gap-2 ml-auto">
-                <!-- Organization badge -->
-                @if($navContext->organization)
-                <span class="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/>
-                    </svg>
-                    {{ $navContext->organization->name }}
-                </span>
-                @endif
 
+                @auth
                 <!-- Dark mode toggle -->
                 <button id="theme-toggle" type="button"
-                    class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
                     aria-label="Toggle dark mode">
-                    <!-- Sun icon (shown in dark mode) -->
-                    <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden" viewBox="0 0 20 20" fill="currentColor">
+                    <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden dark:block" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/>
                     </svg>
-                    <!-- Moon icon (shown in light mode) -->
-                    <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 block" viewBox="0 0 20 20" fill="currentColor">
+                    <svg id="icon-moon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 block dark:hidden" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
                     </svg>
                 </button>
 
-                @auth
+                {{-- User dropdown --}}
                 <div class="relative" x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
                     <button type="button"
                             @click="open = !open"
                             :aria-expanded="open"
                             aria-haspopup="true"
-                            class="flex items-center gap-1.5 p-1 pr-2 rounded-full hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <span class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white text-xs font-bold uppercase">
+                            class="flex items-center gap-1.5 p-1 pr-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-violet-600 text-white text-xs font-bold uppercase ring-1 ring-brand-700/10">
                             {{ $navContext->userInitials }}
                         </span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                        </svg>
+                        <svg class="h-4 w-4 text-slate-500 transition-transform" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                     </button>
 
                     <div x-show="open" x-cloak x-transition
-                         class="absolute right-0 mt-2 w-56 rounded-xl bg-white shadow-lg ring-1 ring-gray-200 py-1 z-50"
+                         class="absolute right-0 mt-2 w-60 rounded-xl bg-white dark:bg-slate-900 shadow-lg ring-1 ring-slate-200 dark:ring-slate-700 py-1.5 z-50"
                          role="menu" aria-orientation="vertical">
-                        <div class="px-4 py-3 border-b border-gray-100">
-                            <p class="text-sm font-semibold text-gray-900 truncate">{{ auth()->user()->name }}</p>
-                            <p class="text-xs text-gray-500 truncate">{{ auth()->user()->email }}</p>
+                        <div class="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                            <p class="text-sm font-semibold text-slate-900 dark:text-white truncate">{{ auth()->user()->name }}</p>
+                            <p class="text-xs text-slate-500 truncate">{{ auth()->user()->email }}</p>
                         </div>
 
                         <a href="{{ route('profile.edit', $navContext->organization ? ['organization' => $navContext->organization->slug] : []) }}"
-                           class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
-                            </svg>
+                           class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800" role="menuitem">
+                            <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                             Profile
                         </a>
 
-                        @if($navContext->organization && $navContext->isAdmin)
+                        @if($navContext->isAdmin)
                             <a href="{{ route('organizations.settings.show', $navContext->organization->slug) }}"
-                               class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
-                                </svg>
+                               class="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800" role="menuitem">
+                                <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                                 Settings
                             </a>
                         @endif
 
-                        <div class="border-t border-gray-100 mt-1 pt-1">
+                        <div class="border-t border-slate-100 dark:border-slate-800 mt-1 pt-1">
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <button type="submit"
-                                        class="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50" role="menuitem">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fill-rule="evenodd" d="M3 4.25A2.25 2.25 0 015.25 2h5.5A2.25 2.25 0 0113 4.25v2a.75.75 0 01-1.5 0v-2a.75.75 0 00-.75-.75h-5.5a.75.75 0 00-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 00.75-.75v-2a.75.75 0 011.5 0v2A2.25 2.25 0 0110.75 18h-5.5A2.25 2.25 0 013 15.75V4.25z"/>
-                                        <path d="M6 10a.75.75 0 01.75-.75h6.69L11.97 7.78a.75.75 0 011.06-1.06l2.75 2.75a.75.75 0 010 1.06l-2.75 2.75a.75.75 0 01-1.06-1.06l1.47-1.47H6.75A.75.75 0 016 10z"/>
-                                    </svg>
+                                        class="w-full flex items-center gap-2 px-4 py-2 text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20" role="menuitem">
+                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
                                     Sign out
                                 </button>
                             </form>
                         </div>
                     </div>
                 </div>
-                @endauth
 
                 <!-- Mobile menu button -->
                 @if($navContext->organization)
                 <button id="mobile-menu-btn" type="button"
-                    class="sm:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+                    class="sm:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
                     aria-label="Open menu">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>
                 </button>
                 @endif
+                @endauth
             </div>
         </div>
 
         <!-- Mobile dropdown menu -->
         @if($navContext->organization)
-        <div id="mobile-menu" class="hidden sm:hidden border-t border-gray-200 bg-white">
+        <div id="mobile-menu" class="hidden sm:hidden border-t border-slate-200 bg-white dark:bg-slate-900">
             <div class="px-3 py-2 space-y-1">
-                <a href="{{ route('organizations.index', $navContext->organization->slug) }}" class="mobile-nav-link">Dashboard</a>
-                <a href="{{ route('home', $navContext->organization->slug) }}" class="mobile-nav-link">Households</a>
-                <a href="{{ route('contributions.index', $navContext->organization->slug) }}" class="mobile-nav-link">Contributions</a>
-                <a href="{{ route('expenses.index', $navContext->organization->slug) }}" class="mobile-nav-link">Expenses</a>
-                <a href="{{ route('contributions.verify', $navContext->organization->slug) }}" class="mobile-nav-link flex items-center justify-between">
-                    <span>Verify Contributions</span>
-                    @if(($pendingVerificationCount ?? 0) > 0)
-                        <span class="verify-badge inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-600 text-white text-xs font-semibold"
-                              data-count="{{ $pendingVerificationCount }}">
-                            {{ $pendingVerificationCount }}
-                        </span>
-                    @endif
-                </a>
+                <a href="{{ route('organizations.index', $navContext->organization->slug) }}" class="mobile-nav-link {{ request()->routeIs('organizations.index') ? 'mobile-nav-link-active' : '' }}">Dashboard</a>
+                <a href="{{ route('home', $navContext->organization->slug) }}" class="mobile-nav-link {{ request()->routeIs('home') || request()->routeIs('households.*') ? 'mobile-nav-link-active' : '' }}">Households</a>
+                <a href="{{ route('contributions.index', $navContext->organization->slug) }}" class="mobile-nav-link {{ request()->routeIs('contributions.index') ? 'mobile-nav-link-active' : '' }}">Contributions</a>
+                <a href="{{ route('expenses.index', $navContext->organization->slug) }}" class="mobile-nav-link {{ request()->routeIs('expenses.*') ? 'mobile-nav-link-active' : '' }}">Expenses</a>
 
-                <hr class="my-2 border-gray-200">
+                @if($navContext->canVerify)
+                    <a href="{{ route('contributions.verify', $navContext->organization->slug) }}" class="mobile-nav-link flex items-center justify-between {{ request()->routeIs('contributions.verify*') ? 'mobile-nav-link-active' : '' }}">
+                        <span>Verify payments</span>
+                        @if(($pendingVerificationCount ?? 0) > 0)
+                            <span class="verify-badge inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-rose-600 text-white text-xs font-semibold"
+                                  data-count="{{ $pendingVerificationCount }}">{{ $pendingVerificationCount }}</span>
+                        @endif
+                    </a>
+                @endif
+
+                <p class="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-slate-400 font-bold">Reports</p>
+                <a href="{{ route('reports.contributions.index', $navContext->organization->slug) }}" class="mobile-nav-link">Contributions</a>
+                <a href="{{ route('reports.expenses.index', $navContext->organization->slug) }}" class="mobile-nav-link">Expenses</a>
+                <a href="{{ route('reports.delinquency.index', $navContext->organization->slug) }}" class="mobile-nav-link">Delinquency</a>
+
+                <hr class="my-2 border-slate-200">
 
                 @auth
                 <a href="{{ route('profile.edit', $navContext->organization ? ['organization' => $navContext->organization->slug] : []) }}" class="mobile-nav-link">Profile</a>
 
-                @if($navContext->organization && $navContext->isAdmin)
+                @if($navContext->isAdmin)
                     <a href="{{ route('organizations.settings.show', $navContext->organization->slug) }}" class="mobile-nav-link">Settings</a>
                 @endif
 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
-                    <button type="submit" class="mobile-nav-link w-full text-left text-red-600">Sign out</button>
+                    <button type="submit" class="mobile-nav-link w-full text-left text-rose-600">Sign out</button>
                 </form>
                 @endauth
             </div>
@@ -243,21 +267,24 @@
         @endif
     </nav>
 
-    <!-- Shared inline styles for nav links (since we're on CDN tailwind, JIT is fully available) -->
+    <!-- Nav link styles — gradient pill active state to match the rest of the system. -->
     <style>
         .nav-link {
-            @apply px-3 py-1.5 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors;
+            @apply px-3 py-2 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors;
         }
         .nav-link-active {
-            @apply text-indigo-600 bg-indigo-50 hover:bg-indigo-50 hover:text-indigo-600
+            @apply text-white bg-gradient-to-r from-brand-600 to-violet-600 shadow-sm hover:from-brand-700 hover:to-violet-700 hover:text-white dark:hover:text-white;
         }
         .mobile-nav-link {
-            @apply block px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors;
+            @apply block px-3 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors;
+        }
+        .mobile-nav-link-active {
+            @apply text-brand-700 bg-brand-50 dark:text-brand-300 dark:bg-brand-900/30;
         }
     </style>
 
     <!-- ===== PAGE WRAPPER ===== -->
-    <div class="pt-14 min-h-screen flex flex-col">
+    <div class="pt-16 min-h-screen flex flex-col">
 
         @auth
             @php
@@ -368,6 +395,17 @@
                     html.classList.add('dark');
                     localStorage.setItem('theme', 'dark');
                 }
+                // Mirror the inline Tailwind dark:block / dark:hidden classes.
+                document.querySelectorAll('[data-theme-icon]').forEach(function (el) {
+                    var target = el.getAttribute('data-theme-icon');
+                    if (target === 'sun') {
+                        el.classList.toggle('hidden', !html.classList.contains('dark'));
+                        el.classList.toggle('block', html.classList.contains('dark'));
+                    } else if (target === 'moon') {
+                        el.classList.toggle('hidden', html.classList.contains('dark'));
+                        el.classList.toggle('block', !html.classList.contains('dark'));
+                    }
+                });
             });
 
             // Mobile menu

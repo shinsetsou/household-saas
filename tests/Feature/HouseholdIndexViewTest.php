@@ -27,8 +27,28 @@ class HouseholdIndexViewTest extends TestCase
         $response = $this->actingAs($user)->get(route('households.index', $org));
 
         $response->assertOk();
-        $response->assertSeeInOrder(['Name', 'Block', 'Lot', 'Actions']);
+        $response->assertSeeInOrder(['Household', 'Block', 'Lot', 'Actions']);
         $response->assertSee('Dela Cruz Residence');
+        $response->assertSee('Block 3');
+        $response->assertSee('Lot 9');
+    }
+
+    public function test_index_renders_new_hero_and_stat_tiles(): void
+    {
+        $org = Organization::factory()->create();
+        $user = User::factory()->create();
+        $user->organizations()->attach($org->id, ['role' => 'admin']);
+        Household::factory()->count(2)->create(['organization_id' => $org->id]);
+
+        $response = $this->actingAs($user)->get(route('households.index', $org));
+
+        $response->assertOk();
+        $response->assertSee('All households');
+        $response->assertSee('Households'); // stat tile label
+        $response->assertSee('Blocks'); // stat tile label
+        $response->assertSee('Active payers'); // stat tile label
+        $response->assertSee('Add household');
+        $response->assertSee('Import CSV');
     }
 
     public function test_index_redirects_guest_to_login(): void

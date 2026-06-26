@@ -1,87 +1,150 @@
 @extends('layouts.layout')
 
-@section('title', $organization->name . ' — Households')
+@section('title', $organization->name . ' — Household Lookup')
 
 @section('content')
 
-{{-- Page header --}}
-<div class="mb-8">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Household Lookup</h1>
-            <p class="mt-1 text-sm text-gray-500">Search for a household by block and lot number</p>
-        </div>
+@php
+    $foundHousehold = null;
+    $searched = request()->filled('block') && request()->filled('lot');
 
-        @auth
-        <a href="{{ route('organizations.index', $organization->slug) }}"
-           class="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
-            </svg>
-            Back to Dashboard
-        </a>
-        @endauth
-    </div>
-</div>
+    if ($searched) {
+        $foundHousehold = \App\Models\Household::where('organization_id', $organization->id)
+            ->where('block', request('block'))
+            ->where('lot', request('lot'))
+            ->first();
+    }
+@endphp
 
-{{-- Search card --}}
-<div class="max-w-lg mx-auto">
-    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-8">
+@auth
+    <nav class="flex items-center gap-2 text-xs text-slate-500 mb-4">
+        <a href="{{ route('organizations.index', $organization->slug) }}" class="hover:text-brand-600 transition-colors">Dashboard</a>
+        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/></svg>
+        <span class="text-slate-700 font-medium">Household lookup</span>
+    </nav>
+@endauth
 
-        {{-- Icon --}}
-        <div class="flex justify-center mb-6">
-            <span class="flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-600">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
-                </svg>
+<x-page-header
+    :eyebrow="$organization->name"
+    title="Find your household"
+    subtitle="Enter your block and lot number to look up your record and submit a payment."
+    tone="violet"
+    icon="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z">
+    @auth
+        <x-slot:actions>
+            <x-brand-button variant="secondary" :href="route('organizations.index', $organization->slug)" icon="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3">Dashboard</x-brand-button>
+        </x-slot:actions>
+    @endauth
+</x-page-header>
+
+<div class="mt-8 max-w-2xl mx-auto space-y-6">
+
+    {{-- Search card --}}
+    <div class="rounded-2xl bg-white dark:bg-gray-800 ring-1 ring-slate-200 dark:ring-slate-700 shadow-sm overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+            <span class="flex-shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-violet-600 text-white shadow-sm">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             </span>
+            <div>
+                <h2 class="text-base font-semibold text-slate-900 dark:text-white">Household lookup</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Your household record is one search away.</p>
+            </div>
         </div>
 
-        <h2 class="text-lg font-semibold text-center text-gray-900 mb-1">Find Household</h2>
-        <p class="text-sm text-center text-gray-500 mb-8">Enter the block and lot number to look up a household record.</p>
-
-        <form action="{{ '/' . $organization->slug . '/households' }}" method="GET">
-            <div class="grid grid-cols-2 gap-4 mb-6">
+        <form action="{{ '/' . $organization->slug }}" method="GET" class="px-6 py-6 space-y-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                    <label for="block" class="block text-sm font-medium text-gray-700 mb-1.5">
-                        Block No.
-                    </label>
-                    <input type="number" id="block" name="block" placeholder="e.g. 3"
+                    <label for="block" class="block text-sm font-medium text-slate-700 dark:text-slate-200">Block number</label>
+                    <input type="number" name="block" id="block" placeholder="e.g. 3" min="1" required
                            value="{{ request('block') }}"
-                           class="form-input"
-                           min="1">
+                           class="mt-2 block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-base font-semibold focus:bg-white dark:focus:bg-slate-900 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 focus:outline-none">
                 </div>
                 <div>
-                    <label for="lot" class="block text-sm font-medium text-gray-700 mb-1.5">
-                        Lot No.
-                    </label>
-                    <input type="number" id="lot" name="lot" placeholder="e.g. 12"
+                    <label for="lot" class="block text-sm font-medium text-slate-700 dark:text-slate-200">Lot number</label>
+                    <input type="number" name="lot" id="lot" placeholder="e.g. 12" min="1" required
                            value="{{ request('lot') }}"
-                           class="form-input"
-                           min="1">
+                           class="mt-2 block w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3 text-base font-semibold focus:bg-white dark:focus:bg-slate-900 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/30 focus:outline-none">
                 </div>
             </div>
 
             <button type="submit"
-                    class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 active:bg-indigo-800 transition-colors shadow-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
-                </svg>
-                Search Household
+                    class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-brand-glow hover:from-brand-700 hover:to-violet-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                Find my household
             </button>
+
+            <p class="text-center text-xs text-slate-400 dark:text-slate-500">
+                Both block and lot are required. Don't know yours? Check your move-in documents or ask your treasurer.
+            </p>
         </form>
     </div>
 
-    {{-- Tip --}}
-    <p class="mt-4 text-center text-xs text-gray-400">
-        Both block and lot number are required to locate a household.
-    </p>
-</div>
+    {{-- Search result --}}
+    @if($searched)
+        @if($foundHousehold)
+            <div class="rounded-2xl bg-gradient-to-br from-brand-50 to-violet-50 dark:from-brand-900/20 dark:to-violet-900/20 ring-1 ring-brand-200 dark:ring-brand-800 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 border-b border-brand-200 dark:border-brand-800 flex items-center gap-3">
+                    <span class="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-brand-500 to-violet-600 text-white text-lg font-bold uppercase shadow-sm">
+                        {{ strtoupper(substr($foundHousehold->name, 0, 1)) }}
+                    </span>
+                    <div>
+                        <h2 class="text-base font-semibold text-slate-900 dark:text-white">{{ $foundHousehold->name }}</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-100 text-brand-700 ring-1 ring-brand-200">Block {{ $foundHousehold->block }}</span>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-brand-100 text-brand-700 ring-1 ring-brand-200 ml-1">Lot {{ $foundHousehold->lot }}</span>
+                        </p>
+                    </div>
+                </div>
 
-<style>
-    .form-input {
-        @apply w-full px-3 py-2 text-sm rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition;
-    }
-</style>
+                <div class="px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <p class="text-sm text-slate-700 dark:text-slate-200">
+                        Ready to record a payment? Click below to upload your receipt.
+                    </p>
+                    <a href="{{ route('contributions.create', [$organization, $foundHousehold]) }}"
+                       class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-brand-glow hover:from-brand-700 hover:to-violet-700 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                        Submit payment
+                    </a>
+                </div>
+            </div>
+        @else
+            <div class="rounded-2xl bg-white dark:bg-gray-800 ring-1 ring-rose-200 dark:ring-rose-800 shadow-sm overflow-hidden">
+                <div class="px-6 py-5 flex items-start gap-3">
+                    <span class="flex-shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-rose-100 text-rose-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    </span>
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-900 dark:text-white">No household found</h3>
+                        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                            We couldn't find a household at
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">Block {{ request('block') }}</span>
+                            Lot
+                            <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-xs">{{ request('lot') }}</span>.
+                            Double-check your numbers or contact your treasurer.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endif
+
+    {{-- Info card (only when not authenticated) --}}
+    @guest
+        <div class="rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 ring-1 ring-slate-200 dark:ring-slate-700 p-5">
+            <div class="flex items-start gap-3">
+                <span class="flex-shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </span>
+                <div>
+                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-200">Treasurer or officer?</p>
+                    <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                        <a href="{{ route('login') }}" class="font-semibold text-brand-600 hover:text-brand-700">Sign in</a>
+                        to access the admin dashboard, contribution records, and reports.
+                    </p>
+                </div>
+            </div>
+        </div>
+    @endguest
+</div>
 
 @endsection
