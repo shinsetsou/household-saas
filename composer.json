@@ -55,6 +55,10 @@
             "dont-discover": []
         }
     },
+    "suggest": {
+        "mailtrap/mailtrap-laravel": "Required for MAIL_MAILER=mailtrap (Mailtrap transactional Email API). SMTP-based MAIL_MAILER=smtp is also supported.",
+        "sentry/sentry-laravel": "Required for Sentry error reporting. Set SENTRY_LARAVEL_DSN to enable."
+    },
     "config": {
         "optimize-autoloader": true,
         "preferred-install": "dist",

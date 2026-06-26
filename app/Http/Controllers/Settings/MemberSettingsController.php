@@ -78,6 +78,21 @@ class MemberSettingsController extends Controller
             ->with('success', 'Invitation resent.');
     }
 
+    public function link(Request $request, Organization $organization, OrganizationInvitation $invitation)
+    {
+        abort_unless($invitation->organization_id === $organization->id, 404);
+        abort_unless($invitation->isPending(), 404);
+
+        $url = url('/invitations/'.$invitation->token);
+
+        // Support JSON for the copy-to-clipboard JS and a plain response for manual paste.
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['url' => $url]);
+        }
+
+        return back()->with('info', $url);
+    }
+
     public function removeMember(Request $request, Organization $organization, User $member): RedirectResponse
     {
         $this->invitations->removeMember($organization, $member, $request->user());

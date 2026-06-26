@@ -22,6 +22,7 @@ class DelinquencyServiceTest extends TestCase
             'amount' => 200,
             'status' => 'paid',
             'verification_status' => 'verified',
+            'month_for' => now()->startOfMonth()->toDateString(),
             'created_at' => now()->startOfMonth(),
         ]);
 
@@ -50,6 +51,7 @@ class DelinquencyServiceTest extends TestCase
             'amount' => 100,
             'status' => 'lacking',
             'verification_status' => 'pending',
+            'month_for' => now()->startOfMonth()->toDateString(),
             'created_at' => now()->startOfMonth(),
         ]);
 
@@ -57,5 +59,31 @@ class DelinquencyServiceTest extends TestCase
 
         $this->assertCount(1, $rows);
         $this->assertSame(200.0, $rows[0]['amount_due']);
+    }
+
+    public function test_delinquency_uses_month_for_not_created_at(): void
+    {
+        $organization = Organization::factory()->create(['monthly_due_amount' => 200]);
+        $household = Household::factory()->create(['organization_id' => $organization->id]);
+
+        // Paid in June but credited to May (resident paid late, treasurer corrected the month).
+        Contribution::factory()->create([
+            'household_id' => $household->id,
+            'amount' => 200,
+            'status' => 'paid',
+            'verification_status' => 'verified',
+            'month_for' => now()->startOfMonth()->subMonth()->toDateString(),
+            'created_at' => now()->startOfMonth(),
+        ]);
+
+        // May should NOT be delinquent anymore, but the current month is.
+        $previousMonth = app(DelinquencyService::class)
+            ->forOrganization($organization, now()->subMonth()->year, now()->subMonth()->month);
+        $this->assertSame([], $previousMonth);
+
+        $currentMonth = app(DelinquencyService::class)
+            ->forOrganization($organization, now()->year, now()->month);
+        $this->assertCount(1, $currentMonth);
+        $this->assertSame(200.0, $currentMonth[0]['amount_due']);
     }
 }

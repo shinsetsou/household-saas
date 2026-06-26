@@ -13,6 +13,7 @@ class Contribution extends Model
     protected $fillable = [
         'household_id',
         'amount',
+        'month_for',
         'photo',
         'status',
         'verification_status',
@@ -30,6 +31,7 @@ class Contribution extends Model
     {
         return [
             'verified_at' => 'datetime',
+            'month_for' => 'date',
         ];
     }
 
@@ -47,6 +49,17 @@ class Contribution extends Model
         return $this->photo ? Storage::disk('s3')->url($this->photo) : null;
     }
 
+    /**
+     * Human-readable billing period the contribution is credited toward.
+     * Falls back to the submission month so older rows still render sensibly.
+     */
+    public function getBillingPeriodLabelAttribute(): string
+    {
+        $date = $this->month_for ?? $this->created_at;
+
+        return $date ? $date->format('M Y') : '—';
+    }
+
     public function verifier()
     {
         return $this->belongsTo(User::class, 'verified_by');
@@ -57,5 +70,15 @@ class Contribution extends Model
         return $query->whereHas('household', function ($householdQuery) use ($organization) {
             $householdQuery->where('organization_id', $organization->id);
         });
+    }
+
+    public function scopeForBillingMonth($query, int $year, int $month)
+    {
+        $start = sprintf('%04d-%02d-01', $year, $month);
+        $end = sprintf('%04d-%02d-01', $year === 12 ? $year + 1 : $year, $month === 12 ? 1 : $month + 1);
+
+        return $query->whereNotNull('month_for')
+            ->where('month_for', '>=', $start)
+            ->where('month_for', '<', $end);
     }
 }

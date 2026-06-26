@@ -13,6 +13,7 @@ class ContributionFactory extends Factory
         return [
             'household_id' => Household::factory(),
             'amount' => 200,
+            'month_for' => now()->startOfMonth()->toDateString(),
             'photo' => null,
             'status' => 'paid',
             'reference_number' => (string) Str::uuid(),

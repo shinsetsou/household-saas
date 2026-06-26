@@ -50,4 +50,20 @@ class Subscription extends Model
     {
         return in_array($this->status, [self::STATUS_ACTIVE, self::STATUS_TRIALING], true);
     }
+
+    /**
+     * True when the user has scheduled this subscription for cancellation at the
+     * end of the current billing period but it has not been finalized yet.
+     */
+    public function isCancelAtPeriodEnd(): bool
+    {
+        return $this->canceled_at !== null
+            && $this->status === self::STATUS_ACTIVE
+            && $this->canceled_at->isFuture();
+    }
+
+    public function isFullyCanceled(): bool
+    {
+        return $this->status === self::STATUS_CANCELED;
+    }
 }

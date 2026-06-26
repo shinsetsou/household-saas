@@ -53,6 +53,45 @@ class BillingTest extends TestCase
             ->assertSee('City');
     }
 
+    public function test_billing_page_lists_all_three_plans_even_if_db_started_empty(): void
+    {
+        // Simulate a stale dev DB: delete all plan rows. AppServiceProvider should
+        // auto-seed on the next boot, so the billing page must still render all
+        // three plan cards with working Switch buttons.
+        Plan::query()->delete();
+
+        $this->assertSame(0, Plan::count());
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('organizations.settings.billing.show', $this->organization->slug));
+
+        $response->assertOk();
+        $response->assertSee('Community');
+        $response->assertSee('Barangay');
+        $response->assertSee('City');
+
+        $this->assertSame(3, Plan::count());
+    }
+
+    public function test_billing_page_shows_switch_button_for_non_current_plans(): void
+    {
+        // Put the org on the cheapest plan so both bigger plans show a button.
+        $this->organization->update(['plan_id' => $this->community->id]);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('organizations.settings.billing.show', $this->organization->slug));
+
+        $response->assertOk();
+        // Both bigger plans should show their switch CTA.
+        $response->assertSee('Switch to Barangay');
+        $response->assertSee('Switch to City');
+        // The current plan should NOT show a switch button.
+        $this->assertStringNotContainsString(
+            'Switch to Community',
+            $response->getContent()
+        );
+    }
+
     public function test_guest_cannot_view_billing_page(): void
     {
         $this->get(route('organizations.settings.billing.show', $this->organization->slug))
@@ -220,7 +259,109 @@ class BillingTest extends TestCase
         ], $body);
     }
 
-    public function test_admin_can_cancel_subscription(): void
+    public function test_admin_can_cancel_subscription_at_period_end(): void
+    {
+        $this->organization->update([
+            'subscription_status' => Organization::SUBSCRIPTION_ACTIVE,
+            'plan_id' => $this->barangay->id,
+        ]);
+        $subscription = Subscription::create([
+            'organization_id' => $this->organization->id,
+            'plan_id' => $this->barangay->id,
+            'status' => Subscription::STATUS_ACTIVE,
+            'current_period_start' => now(),
+            'current_period_end' => now()->addDays(14),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('organizations.settings.billing.cancel', $this->organization->slug))
+            ->assertRedirect(route('organizations.settings.billing.show', $this->organization->slug))
+            ->assertSessionHas('info');
+
+        $subscription = $subscription->fresh();
+        $this->assertNotNull($subscription->canceled_at);
+        $this->assertSame(Subscription::STATUS_ACTIVE, $subscription->status, 'Subscription should remain active until period end');
+        $this->assertSame(Organization::SUBSCRIPTION_ACTIVE, $this->organization->fresh()->subscription_status);
+        $this->assertNotNull($this->organization->fresh()->subscription_ends_at);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'organization_id' => $this->organization->id,
+            'action' => 'organization.billing.cancel_scheduled',
+        ]);
+    }
+
+    public function test_admin_can_resume_subscription_before_period_end(): void
+    {
+        $this->organization->update([
+            'subscription_status' => Organization::SUBSCRIPTION_ACTIVE,
+            'plan_id' => $this->barangay->id,
+        ]);
+        $subscription = Subscription::create([
+            'organization_id' => $this->organization->id,
+            'plan_id' => $this->barangay->id,
+            'status' => Subscription::STATUS_ACTIVE,
+            'current_period_start' => now(),
+            'current_period_end' => now()->addDays(14),
+            'canceled_at' => now()->addDays(14),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('organizations.settings.billing.resume', $this->organization->slug))
+            ->assertRedirect(route('organizations.settings.billing.show', $this->organization->slug))
+            ->assertSessionHas('success');
+
+        $this->assertNull($subscription->fresh()->canceled_at);
+        $this->assertNull($this->organization->fresh()->subscription_ends_at);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'organization_id' => $this->organization->id,
+            'action' => 'organization.billing.resumed',
+        ]);
+    }
+
+    public function test_subscriptions_expire_command_finalizes_due_cancellations(): void
+    {
+        $this->organization->update([
+            'subscription_status' => Organization::SUBSCRIPTION_ACTIVE,
+            'plan_id' => $this->barangay->id,
+        ]);
+        $subscription = Subscription::create([
+            'organization_id' => $this->organization->id,
+            'plan_id' => $this->barangay->id,
+            'status' => Subscription::STATUS_ACTIVE,
+            'current_period_start' => now()->subDays(30),
+            'current_period_end' => now()->subDays(1),
+            'canceled_at' => now()->subDay(), // scheduled yesterday
+        ]);
+
+        $this->artisan('subscriptions:expire')->assertSuccessful();
+
+        $subscription = $subscription->fresh();
+        $this->assertSame(Subscription::STATUS_CANCELED, $subscription->status);
+        $this->assertSame(Organization::SUBSCRIPTION_CANCELED, $this->organization->fresh()->subscription_status);
+    }
+
+    public function test_subscriptions_expire_command_skips_cancellations_not_yet_due(): void
+    {
+        $this->organization->update([
+            'subscription_status' => Organization::SUBSCRIPTION_ACTIVE,
+            'plan_id' => $this->barangay->id,
+        ]);
+        $subscription = Subscription::create([
+            'organization_id' => $this->organization->id,
+            'plan_id' => $this->barangay->id,
+            'status' => Subscription::STATUS_ACTIVE,
+            'current_period_start' => now(),
+            'current_period_end' => now()->addDays(14),
+            'canceled_at' => now()->addDays(14),
+        ]);
+
+        $this->artisan('subscriptions:expire')->assertSuccessful();
+
+        $this->assertSame(Subscription::STATUS_ACTIVE, $subscription->fresh()->status);
+    }
+
+    public function test_downgrade_checkout_schedules_current_sub_cancellation(): void
     {
         $this->organization->update([
             'subscription_status' => Organization::SUBSCRIPTION_ACTIVE,
@@ -230,21 +371,94 @@ class BillingTest extends TestCase
             'organization_id' => $this->organization->id,
             'plan_id' => $this->barangay->id,
             'status' => Subscription::STATUS_ACTIVE,
+            'current_period_start' => now(),
+            'current_period_end' => now()->addDays(14),
+        ]);
+
+        Http::fake([
+            'api.paymongo.com/v1/checkout_sessions' => Http::response([
+                'data' => [
+                    'id' => 'cs_downgrade',
+                    'attributes' => ['checkout_url' => 'https://paymongo.test/checkout/cs_downgrade'],
+                ],
+            ]),
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->post(route('organizations.settings.billing.checkout', [$this->organization->slug, $this->community->slug]));
+
+        $response->assertRedirect('https://paymongo.test/checkout/cs_downgrade');
+
+        // Current subscription should be scheduled to cancel at period end (not immediately).
+        $this->assertDatabaseHas('subscriptions', [
+            'organization_id' => $this->organization->id,
+            'plan_id' => $this->barangay->id,
+            'status' => Subscription::STATUS_ACTIVE,
+        ]);
+        $subscription = Subscription::where('organization_id', $this->organization->id)->first();
+        $this->assertNotNull($subscription->canceled_at);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'organization_id' => $this->organization->id,
+            'action' => 'organization.billing.downgrade_scheduled',
+        ]);
+    }
+
+    public function test_upgrade_checkout_does_not_cancel_existing_sub(): void
+    {
+        $this->organization->update([
+            'subscription_status' => Organization::SUBSCRIPTION_ACTIVE,
+            'plan_id' => $this->community->id,
+        ]);
+        $subscription = Subscription::create([
+            'organization_id' => $this->organization->id,
+            'plan_id' => $this->community->id,
+            'status' => Subscription::STATUS_ACTIVE,
+            'current_period_start' => now(),
+            'current_period_end' => now()->addDays(14),
+        ]);
+
+        Http::fake([
+            'api.paymongo.com/v1/checkout_sessions' => Http::response([
+                'data' => [
+                    'id' => 'cs_upgrade',
+                    'attributes' => ['checkout_url' => 'https://paymongo.test/checkout/cs_upgrade'],
+                ],
+            ]),
         ]);
 
         $this->actingAs($this->admin)
-            ->post(route('organizations.settings.billing.cancel', $this->organization->slug))
-            ->assertRedirect(route('organizations.settings.billing.show', $this->organization->slug));
+            ->post(route('organizations.settings.billing.checkout', [$this->organization->slug, $this->barangay->slug]))
+            ->assertRedirect('https://paymongo.test/checkout/cs_upgrade');
 
-        $this->assertDatabaseHas('organizations', [
-            'id' => $this->organization->id,
-            'subscription_status' => Organization::SUBSCRIPTION_CANCELED,
-        ]);
-
-        $this->assertDatabaseHas('subscriptions', [
+        // Existing subscription should be untouched.
+        $this->assertNull($subscription->fresh()->canceled_at);
+        $this->assertDatabaseMissing('audit_logs', [
             'organization_id' => $this->organization->id,
-            'status' => Subscription::STATUS_CANCELED,
+            'action' => 'organization.billing.downgrade_scheduled',
         ]);
+    }
+
+    public function test_cancel_does_not_change_subscription_status_immediately(): void
+    {
+        $this->organization->update([
+            'subscription_status' => Organization::SUBSCRIPTION_ACTIVE,
+            'plan_id' => $this->barangay->id,
+        ]);
+        Subscription::create([
+            'organization_id' => $this->organization->id,
+            'plan_id' => $this->barangay->id,
+            'status' => Subscription::STATUS_ACTIVE,
+            'current_period_start' => now(),
+            'current_period_end' => now()->addDays(14),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('organizations.settings.billing.cancel', $this->organization->slug));
+
+        // Status remains active — only canceled_at is set.
+        $this->assertSame(Organization::SUBSCRIPTION_ACTIVE, $this->organization->fresh()->subscription_status);
+        $this->assertTrue($this->organization->fresh()->isCancelingAtPeriodEnd());
     }
 
     public function test_household_limit_middleware_blocks_creation_when_exceeded(): void

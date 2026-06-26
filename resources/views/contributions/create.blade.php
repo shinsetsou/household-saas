@@ -54,8 +54,28 @@
                            class="form-input pl-8 @error('amount') form-input-error @enderror"
                            required>
                 </div>
-                <p class="mt-1.5 text-xs text-gray-500">Monthly due is &#8369;200. Overpayments are automatically split into months.</p>
+                <p class="mt-1.5 text-xs text-gray-500">Monthly due is &#8369;{{ number_format($organization->monthly_due_amount, 2) }}. Overpayments are automatically split into months.</p>
                 @error('amount')
+                    <p class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        {{ $message }}
+                    </p>
+                @enderror
+            </div>
+
+            {{-- Billing month --}}
+            <div>
+                <label for="month_for" class="form-label">
+                    Billing Month
+                </label>
+                <input type="month" name="month_for" id="month_for"
+                       value="{{ old('month_for', now()->format('Y-m')) }}"
+                       max="{{ now()->format('Y-m') }}"
+                       class="form-input mt-1.5 @error('month_for') form-input-error @enderror">
+                <p class="mt-1.5 text-xs text-gray-500">Which month should this payment be credited to? Defaults to the current month. Treasurer can correct this during verification.</p>
+                @error('month_for')
                     <p class="mt-1.5 text-xs text-red-600 flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>

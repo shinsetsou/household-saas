@@ -20,9 +20,13 @@ class EnsurePlanAllowsHousehold
         if ($organization->hasReachedHouseholdLimit()) {
             $limit = $organization->householdLimit();
 
+            $message = $organization->isOnTrial()
+                ? "Your free trial allows up to {$limit} households. Upgrade to a paid plan to add more."
+                : "Your current plan allows up to {$limit} households. Upgrade to add more.";
+
             return redirect()
                 ->route('organizations.settings.billing.show', $organization->slug)
-                ->with('error', "Your current plan allows up to {$limit} households. Upgrade to add more.");
+                ->with('error', $message);
         }
 
         return $next($request);

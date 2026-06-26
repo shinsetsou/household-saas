@@ -89,6 +89,9 @@ Route::prefix('/{organization:slug}')->group(function () {
         Route::patch('contributions/{reference_number}/verify', [ContributionController::class, 'verifyContribution'])
             ->middleware(EnsureOrganizationRole::class.':admin,treasurer')
             ->name('contributions.verify.store');
+        Route::patch('contributions/verify-bulk', [ContributionController::class, 'bulkVerifyContribution'])
+            ->middleware(EnsureOrganizationRole::class.':admin,treasurer')
+            ->name('contributions.verify.bulk');
 
         Route::resource('expenses', ExpenseController::class)
             ->middleware(EnsureOrganizationRole::class.':admin,treasurer')
@@ -113,10 +116,12 @@ Route::prefix('/{organization:slug}')->group(function () {
             Route::patch('settings/members/{member}/role', [MemberSettingsController::class, 'changeRole'])->name('organizations.settings.members.role');
             Route::post('settings/invitations/{invitation}/revoke', [MemberSettingsController::class, 'revoke'])->name('organizations.settings.invitations.revoke');
             Route::post('settings/invitations/{invitation}/resend', [MemberSettingsController::class, 'resend'])->name('organizations.settings.invitations.resend');
+            Route::get('settings/invitations/{invitation}/link', [MemberSettingsController::class, 'link'])->name('organizations.settings.invitations.link');
 
             Route::get('settings/billing', [BillingSettingsController::class, 'show'])->name('organizations.settings.billing.show');
             Route::post('settings/billing/checkout/{plan}', [BillingController::class, 'checkout'])->name('organizations.settings.billing.checkout');
             Route::post('settings/billing/cancel', [BillingSettingsController::class, 'cancel'])->name('organizations.settings.billing.cancel');
+            Route::post('settings/billing/resume', [BillingSettingsController::class, 'resume'])->name('organizations.settings.billing.resume');
         });
     });
 });

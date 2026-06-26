@@ -15,7 +15,9 @@ class DelinquencyService
 
         foreach ($organization->households()->with('contributions')->orderBy('block')->orderBy('lot')->get() as $household) {
             $monthContributions = $household->contributions->filter(function ($contribution) use ($period) {
-                return $contribution->created_at->isSameMonth($period);
+                $creditDate = $contribution->month_for ?? $contribution->created_at;
+
+                return $creditDate && $creditDate->isSameMonth($period);
             });
 
             $verifiedPaid = $monthContributions

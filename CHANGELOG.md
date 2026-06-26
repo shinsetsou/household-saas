@@ -2,6 +2,18 @@
 
 All notable changes to this project. Newest first.
 
+## [Unreleased] — 2026-07-05
+
+### Added — Mailtrap Email API support
+
+- **`mailtrap/mailtrap-laravel` listed as a `suggest` in `composer.json`**. Run `composer require mailtrap/mailtrap-laravel` to enable `MAIL_MAILER=mailtrap`. App stays install-clean without it; the package is optional.
+- **`docs/MAIL_SETUP.md`** — full setup walkthrough. Documents the **Mailtrap sandbox SMTP vs Email API** distinction: sandbox is dev-only and unreachable from cloud IPs (Railway, Render, AWS). Symptoms: `Maximum execution time of 30 seconds exceeded` inside `Symfony\Component\Mailer\Transport\Smtp\Stream\SocketStream.php:154`. Switch to Email API or a different provider.
+- **`.env.production.example`** documents `MAIL_MAILER=mailtrap` and adds `MAILTRAP_API_TOKEN` / `MAILTRAP_INBOX_ID` variables.
+
+### Changed — Trust Railway's edge proxy
+
+- **`bootstrap/app.php:21`** — `$middleware->trustProxies(at: '*')`. Forms / email links / signed URLs now respect `X-Forwarded-Proto: https` from Railway's load balancer. Without this, `url()` and `route()` would generate `http://` links even when the user is on HTTPS (caused "form is not secure" browser warnings on the verify-email resend button).
+
 ## [Unreleased] — 2026-07-04
 
 ### Changed — Mail listener hardening

@@ -319,4 +319,86 @@ class InvitationTest extends TestCase
             'user_id' => $this->admin->id,
         ]);
     }
+
+    public function test_admin_can_fetch_signed_invite_link_as_json(): void
+    {
+        $invitation = OrganizationInvitation::create([
+            'organization_id' => $this->organization->id,
+            'email' => 'link@example.com',
+            'role' => OrganizationRole::Treasurer->value,
+            'invited_by' => $this->admin->id,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->getJson(route('organizations.settings.invitations.link', [$this->organization->slug, $invitation->id]));
+
+        $response->assertOk();
+        $response->assertJsonStructure(['url']);
+        $this->assertStringContainsString('/invitations/'.$invitation->token, $response->json('url'));
+    }
+
+    public function test_non_admin_cannot_fetch_invite_link(): void
+    {
+        $viewer = User::factory()->create();
+        $this->organization->users()->attach($viewer->id, ['role' => OrganizationRole::Viewer->value]);
+        $invitation = OrganizationInvitation::create([
+            'organization_id' => $this->organization->id,
+            'email' => 'link2@example.com',
+            'role' => OrganizationRole::Viewer->value,
+            'invited_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($viewer)
+            ->getJson(route('organizations.settings.invitations.link', [$this->organization->slug, $invitation->id]))
+            ->assertForbidden();
+    }
+
+    public function test_link_endpoint_404s_for_revoked_or_accepted_invitation(): void
+    {
+        $invitation = OrganizationInvitation::create([
+            'organization_id' => $this->organization->id,
+            'email' => 'gone@example.com',
+            'role' => OrganizationRole::Viewer->value,
+            'invited_by' => $this->admin->id,
+            'revoked_at' => now(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('organizations.settings.invitations.link', [$this->organization->slug, $invitation->id]))
+            ->assertNotFound();
+    }
+
+    public function test_members_page_renders_role_chips_for_all_roles(): void
+    {
+        $treasurer = User::factory()->create(['name' => 'Tess Treasurer']);
+        $this->organization->users()->attach($treasurer->id, ['role' => OrganizationRole::Treasurer->value]);
+        $viewer = User::factory()->create(['name' => 'Vince Viewer']);
+        $this->organization->users()->attach($viewer->id, ['role' => OrganizationRole::Viewer->value]);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('organizations.settings.members.show', $this->organization->slug));
+
+        $response->assertOk();
+        $response->assertSee('Admin');
+        $response->assertSee('Treasurer');
+        $response->assertSee('Viewer');
+        $response->assertSee('Copy link');
+    }
+
+    public function test_members_page_renders_pending_invitation_count(): void
+    {
+        OrganizationInvitation::create([
+            'organization_id' => $this->organization->id,
+            'email' => 'pending@example.com',
+            'role' => OrganizationRole::Viewer->value,
+            'invited_by' => $this->admin->id,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('organizations.settings.members.show', $this->organization->slug));
+
+        $response->assertOk();
+        $response->assertSee('Pending invitations');
+        $response->assertSee('1 awaiting acceptance');
+    }
 }

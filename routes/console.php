@@ -12,3 +12,8 @@ Schedule::command('trials:expire')
     ->dailyAt('00:05')
     ->onOneServer()
     ->withoutOverlapping();
+
+Schedule::command('subscriptions:expire')
+    ->dailyAt('00:10')
+    ->onOneServer()
+    ->withoutOverlapping();

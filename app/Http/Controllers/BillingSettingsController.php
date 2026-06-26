@@ -30,9 +30,32 @@ class BillingSettingsController extends Controller
     {
         $this->billing->cancelSubscription($organization);
 
+        $endsAt = $organization->subscription?->canceled_at;
+
         AuditLog::record(
             $organization,
-            'organization.billing.canceled',
+            'organization.billing.cancel_scheduled',
+            request()->user(),
+            $organization,
+            ['plan_id' => $organization->plan_id, 'ends_at' => $endsAt?->toIso8601String()],
+        );
+
+        $message = $endsAt
+            ? "Your subscription will end on {$endsAt->format('M j, Y')}. You can resume anytime before then."
+            : 'Your subscription has been cancelled.';
+
+        return redirect()
+            ->route('organizations.settings.billing.show', $organization->slug)
+            ->with('info', $message);
+    }
+
+    public function resume(Organization $organization): RedirectResponse
+    {
+        $this->billing->resumeSubscription($organization);
+
+        AuditLog::record(
+            $organization,
+            'organization.billing.resumed',
             request()->user(),
             $organization,
             ['plan_id' => $organization->plan_id],
@@ -40,6 +63,6 @@ class BillingSettingsController extends Controller
 
         return redirect()
             ->route('organizations.settings.billing.show', $organization->slug)
-            ->with('info', 'Your subscription has been cancelled.');
+            ->with('success', 'Welcome back! Your subscription is active again.');
     }
 }

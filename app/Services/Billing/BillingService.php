@@ -160,24 +160,76 @@ class BillingService
         DB::transaction(function () use ($organization) {
             $subscription = $organization->subscription;
 
-            if ($subscription) {
+            if ($subscription && $subscription->status !== Subscription::STATUS_CANCELED) {
+                // Schedule cancellation at the end of the current billing period.
+                // The daily `subscriptions:expire` command flips status to canceled
+                // once `current_period_end` actually arrives.
+                $periodEnd = $subscription->current_period_end ?: Carbon::now();
+
                 $subscription->update([
-                    'status' => Subscription::STATUS_CANCELED,
-                    'canceled_at' => Carbon::now(),
+                    'canceled_at' => $periodEnd,
                 ]);
+
+                $organization->update([
+                    'subscription_ends_at' => $periodEnd,
+                ]);
+            }
+        });
+    }
+
+    public function resumeSubscription(Organization $organization): void
+    {
+        DB::transaction(function () use ($organization) {
+            $subscription = $organization->subscription;
+
+            if ($subscription && $subscription->canceled_at) {
+                $subscription->update(['canceled_at' => null]);
             }
 
             $organization->update([
-                'subscription_status' => Organization::SUBSCRIPTION_CANCELED,
-                'subscription_ends_at' => Carbon::now(),
+                'subscription_ends_at' => null,
             ]);
         });
+    }
+
+    /**
+     * End-of-period cancellations whose `current_period_end` is now in the past.
+     * Called by the daily `subscriptions:expire` command. Idempotent.
+     */
+    public function finalizeDueCancellations(): int
+    {
+        $now = Carbon::now();
+        $count = 0;
+
+        Subscription::query()
+            ->whereNotNull('canceled_at')
+            ->where('canceled_at', '<=', $now)
+            ->chunkById(100, function ($subs) use ($now, &$count) {
+                foreach ($subs as $sub) {
+                    $sub->update(['status' => Subscription::STATUS_CANCELED]);
+                    $sub->organization->update([
+                        'subscription_status' => Organization::SUBSCRIPTION_CANCELED,
+                        'subscription_ends_at' => $now,
+                    ]);
+                    $count++;
+                }
+            });
+
+        return $count;
     }
 
     public function startTrial(Organization $organization): void
     {
         $trialDays = (int) config('paymongo.trial_days', 14);
+
+        // Make sure the Community plan row exists before we attach it. This
+        // runs even on the (rare) boot where AppServiceProvider hasn't
+        // auto-seeded yet — e.g. queued jobs, tinker, fresh test DB.
         $communityPlan = Plan::where('slug', 'community')->first();
+        if (! $communityPlan) {
+            $this->seedDefaultPlans();
+            $communityPlan = Plan::where('slug', 'community')->first();
+        }
 
         if (! $communityPlan) {
             return;
@@ -211,6 +263,7 @@ class BillingService
                 'csv_import' => true,
                 'api_access' => false,
                 'sort_order' => 1,
+                'is_active' => true,
             ],
             [
                 'slug' => 'barangay',
@@ -221,6 +274,7 @@ class BillingService
                 'csv_import' => true,
                 'api_access' => false,
                 'sort_order' => 2,
+                'is_active' => true,
             ],
             [
                 'slug' => 'city',
@@ -231,6 +285,7 @@ class BillingService
                 'csv_import' => true,
                 'api_access' => true,
                 'sort_order' => 3,
+                'is_active' => true,
             ],
         ];
 

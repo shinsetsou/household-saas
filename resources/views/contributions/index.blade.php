@@ -71,6 +71,7 @@
                     <th class="th-cell">Amount</th>
                     <th class="th-cell">Status</th>
                     <th class="th-cell">Verification</th>
+                    <th class="th-cell">Billing Month</th>
                     <th class="th-cell">Date</th>
                     <th class="th-cell">Receipt</th>
                 </tr>
@@ -108,6 +109,9 @@
                         @else
                             <span class="status-badge-gray">Pending</span>
                         @endif
+                    </td>
+                    <td class="td-cell text-center text-gray-600">
+                        {{ $contribution->billing_period_label }}
                     </td>
                     <td class="td-cell text-center text-gray-600">
                         {{ $contribution->created_at->format('M d, Y') }}

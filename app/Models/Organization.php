@@ -20,6 +20,12 @@ class Organization extends Model
     public const SUBSCRIPTION_CANCELED = 'canceled';
     public const SUBSCRIPTION_UNPAID = 'unpaid';
 
+    /**
+     * Maximum households a trialing organization may add during its free trial.
+     * Past the trial the limit falls back to the plan's max_households.
+     */
+    public const TRIAL_HOUSEHOLD_CAP = 20;
+
     protected $fillable = [
         'name', 'slug', 'monthly_due_amount',
         'subscription_status', 'trial_ends_at', 'subscription_ends_at',
@@ -131,26 +137,47 @@ class Organization extends Model
 
     public function hasActiveSubscription(): bool
     {
+        // An org is "active" while the subscription is paid OR while it's
+        // trialing OR while the user has scheduled cancellation at period end
+        // (still has access until the period actually closes).
         return in_array($this->subscription_status, [
             self::SUBSCRIPTION_TRIALING,
             self::SUBSCRIPTION_ACTIVE,
         ], true);
     }
 
+    public function isCancelingAtPeriodEnd(): bool
+    {
+        return (bool) $this->subscription?->isCancelAtPeriodEnd();
+    }
+
+    public function currentPeriodEndsAt(): ?\Carbon\Carbon
+    {
+        return $this->subscription?->canceled_at ?? $this->subscription?->current_period_end;
+    }
+
     public function householdLimit(): ?int
     {
+        // Trialing orgs get a tighter cap than the plan's max_households so the
+        // upgrade path is visible before the user has committed. After the trial
+        // ends (status flips to active/past_due/etc.) we fall back to the plan.
+        if ($this->isOnTrial()) {
+            return self::TRIAL_HOUSEHOLD_CAP;
+        }
+
         return $this->plan?->max_households;
+    }
+
+    public function isOnTrialLimit(): bool
+    {
+        $limit = $this->householdLimit();
+
+        return $limit !== null && $this->households()->count() >= $limit;
     }
 
     public function hasReachedHouseholdLimit(): bool
     {
-        $limit = $this->householdLimit();
-
-        if ($limit === null) {
-            return false;
-        }
-
-        return $this->households()->count() >= $limit;
+        return $this->isOnTrialLimit();
     }
 
     public function isExpired(): bool

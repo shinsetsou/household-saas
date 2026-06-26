@@ -12,13 +12,20 @@ class ExpenseController extends Controller
 {
     public function index(Organization $organization, Request $request)
     {
+        $itemsPerPage = $request->input('itemsPerPage', 10);
+
         $expenses = Expense::forOrganization($organization)
             ->when($request->filled('month'), fn ($query) => $query->whereMonth('created_at', $request->month))
             ->when($request->filled('year'), fn ($query) => $query->whereYear('created_at', $request->year))
             ->orderBy('created_at', 'desc')
-            ->paginate($request->input('itemsPerPage', 10));
+            ->paginate($itemsPerPage)
+            ->appends(array_filter([
+                'itemsPerPage' => $itemsPerPage,
+                'month' => $request->input('month'),
+                'year' => $request->input('year'),
+            ]));
 
-        return view('expenses.index', compact('organization', 'expenses'));
+        return view('expenses.index', compact('organization', 'expenses', 'itemsPerPage'));
     }
 
     public function create(Organization $organization)

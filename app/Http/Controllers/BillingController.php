@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\Plan;
 use App\Services\Billing\BillingService;
@@ -23,6 +24,26 @@ class BillingController extends Controller
             return redirect()
                 ->route('organizations.settings.billing.show', $organization->slug)
                 ->with('error', 'That plan is not available.');
+        }
+
+        // Downgrade = switching to a plan that costs less than the current one.
+        // Schedule the current subscription to end at period end (keeping access
+        // until then) so the user doesn't double-pay for the same month, then
+        // kick off the new checkout for the smaller plan.
+        $currentPlan = $organization->plan;
+        if ($currentPlan && $plan->price_cents < $currentPlan->price_cents) {
+            $this->billing->cancelSubscription($organization);
+
+            AuditLog::record(
+                $organization,
+                'organization.billing.downgrade_scheduled',
+                $request->user(),
+                $organization,
+                [
+                    'from_plan_id' => $currentPlan->id,
+                    'to_plan_id' => $plan->id,
+                ],
+            );
         }
 
         try {
