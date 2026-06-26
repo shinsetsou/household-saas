@@ -3,11 +3,11 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Storage;
 
-class ContributionAdded extends Mailable
+class ContributionAdded extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -31,8 +31,7 @@ class ContributionAdded extends Mailable
         $email = $this->view('emails.contribution.added')
             ->with('contributionData', $this->contributionData);
 
-        // Attach the receipt image from the S3/B2 disk if it exists
-        if (! empty($this->contributionData['photo']) && Storage::disk('s3')->exists($this->contributionData['photo'])) {
+        if (! empty($this->contributionData['photo'])) {
             $email->attachFromStorageDisk('s3', $this->contributionData['photo']);
         }
 

@@ -24,14 +24,14 @@
            class="px-4 py-2 text-sm font-semibold border-b-2 -mb-px {{ ($activeTab ?? 'general') === 'general' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-600 hover:text-gray-900' }}">
             General
         </a>
-        <span class="px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed flex items-center gap-1.5" title="Coming soon">
+        <a href="{{ route('organizations.settings.members.show', $organization->slug) }}"
+           class="px-4 py-2 text-sm font-semibold border-b-2 -mb-px {{ ($activeTab ?? null) === 'members' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-600 hover:text-gray-900' }}">
             Members
-            <span class="text-[10px] uppercase tracking-wider bg-gray-100 text-gray-500 rounded px-1.5 py-0.5">Coming soon</span>
-        </span>
-        <span class="px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed flex items-center gap-1.5" title="Coming soon">
+        </a>
+        <a href="{{ route('organizations.settings.billing.show', $organization->slug) }}"
+           class="px-4 py-2 text-sm font-semibold border-b-2 -mb-px {{ ($activeTab ?? null) === 'billing' ? 'border-indigo-600 text-indigo-700' : 'border-transparent text-gray-600 hover:text-gray-900' }}">
             Billing
-            <span class="text-[10px] uppercase tracking-wider bg-gray-100 text-gray-500 rounded px-1.5 py-0.5">Coming soon</span>
-        </span>
+        </a>
     </nav>
 </div>
 

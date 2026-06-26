@@ -4,9 +4,10 @@ namespace App\Listeners;
 
 use App\Events\ContributionCreated;
 use App\Mail\ContributionAdded;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Mail;
 
-class SendContributionAddedEmail
+class SendContributionAddedEmail implements ShouldQueue
 {
     /**
      * Create the event listener.

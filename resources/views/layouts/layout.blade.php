@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'HOA Manager') &mdash; HOA Manager</title>
+    <title>@yield('title', 'BarangayBooks') &mdash; BarangayBooks</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
@@ -73,34 +73,29 @@
                         <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/>
                     </svg>
                 </span>
-                <span class="text-base font-semibold text-gray-900 tracking-tight">HOA Manager</span>
+                <span class="text-base font-semibold text-gray-900 tracking-tight">BarangayBooks</span>
             </a>
 
-            @php
-                // Resolve organization from view variable or route parameter
-                $navOrg = $organization ?? request()->route('organization') ?? null;
-            @endphp
-
             <!-- Nav links (center / left-of-center) — only shown when organization context exists -->
-            @if($navOrg)
+            @if($navContext->organization)
             <div class="hidden sm:flex items-center gap-3 flex-1 ml-4">
                 @auth
-                <a href="{{ route('organizations.index', $navOrg->slug) }}"
+                <a href="{{ route('organizations.index', $navContext->organization->slug) }}"
                    class="nav-link {{ request()->routeIs('organizations.index') ? 'nav-link-active' : '' }}">
                     Dashboard
                 </a>
 
-                <a href="{{ route('contributions.index', $navOrg->slug) }}"
+                <a href="{{ route('contributions.index', $navContext->organization->slug) }}"
                    class="nav-link {{ request()->routeIs('contributions.index') ? 'nav-link-active' : '' }}">
                     Contributions
                 </a>
 
-                <a href="{{ route('expenses.index', $navOrg->slug) }}"
+                <a href="{{ route('expenses.index', $navContext->organization->slug) }}"
                    class="nav-link {{ request()->routeIs('expenses.index') ? 'nav-link-active' : '' }}">
                     Expenses
                 </a>
 
-                <a href="{{ route('contributions.verify', $navOrg->slug) }}"
+                <a href="{{ route('contributions.verify', $navContext->organization->slug) }}"
                    class="nav-link inline-flex items-center gap-1.5 {{ request()->routeIs('contributions.verify') ? 'nav-link-active' : '' }}">
                     Verify
                     @if(($pendingVerificationCount ?? 0) > 0)
@@ -117,12 +112,12 @@
             <!-- Right actions -->
             <div class="flex items-center gap-2 ml-auto">
                 <!-- Organization badge -->
-                @if($navOrg)
+                @if($navContext->organization)
                 <span class="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full border border-indigo-200">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2h-3a1 1 0 01-1-1v-2a1 1 0 00-1-1H9a1 1 0 00-1 1v2a1 1 0 01-1 1H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/>
                     </svg>
-                    {{ $navOrg->name }}
+                    {{ $navContext->organization->name }}
                 </span>
                 @endif
 
@@ -141,19 +136,6 @@
                 </button>
 
                 @auth
-                @php
-                    $userInitials = collect(explode(' ', trim(auth()->user()->name)))
-                        ->map(fn ($w) => mb_substr($w, 0, 1))
-                        ->take(2)
-                        ->join('');
-                    $isAdmin = $navOrg
-                        ? auth()->user()->organizations()
-                            ->where('organizations.id', $navOrg->id)
-                            ->wherePivot('role', 'admin')
-                            ->exists()
-                        : false;
-                @endphp
-
                 <div class="relative" x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
                     <button type="button"
                             @click="open = !open"
@@ -161,7 +143,7 @@
                             aria-haspopup="true"
                             class="flex items-center gap-1.5 p-1 pr-2 rounded-full hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500">
                         <span class="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-600 text-white text-xs font-bold uppercase">
-                            {{ $userInitials ?: '?' }}
+                            {{ $navContext->userInitials }}
                         </span>
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
@@ -176,7 +158,7 @@
                             <p class="text-xs text-gray-500 truncate">{{ auth()->user()->email }}</p>
                         </div>
 
-                        <a href="{{ route('profile.edit', $navOrg ? ['organization' => $navOrg->slug] : []) }}"
+                        <a href="{{ route('profile.edit', $navContext->organization ? ['organization' => $navContext->organization->slug] : []) }}"
                            class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
@@ -184,8 +166,8 @@
                             Profile
                         </a>
 
-                        @if($navOrg && $isAdmin)
-                            <a href="{{ route('organizations.settings.show', $navOrg->slug) }}"
+                        @if($navContext->organization && $navContext->isAdmin)
+                            <a href="{{ route('organizations.settings.show', $navContext->organization->slug) }}"
                                class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" role="menuitem">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/>
@@ -212,7 +194,7 @@
                 @endauth
 
                 <!-- Mobile menu button -->
-                @if($navOrg)
+                @if($navContext->organization)
                 <button id="mobile-menu-btn" type="button"
                     class="sm:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
                     aria-label="Open menu">
@@ -225,14 +207,14 @@
         </div>
 
         <!-- Mobile dropdown menu -->
-        @if($navOrg)
+        @if($navContext->organization)
         <div id="mobile-menu" class="hidden sm:hidden border-t border-gray-200 bg-white">
             <div class="px-3 py-2 space-y-1">
-                <a href="{{ route('organizations.index', $navOrg->slug) }}" class="mobile-nav-link">Dashboard</a>
-                <a href="{{ route('home', $navOrg->slug) }}" class="mobile-nav-link">Households</a>
-                <a href="{{ route('contributions.index', $navOrg->slug) }}" class="mobile-nav-link">Contributions</a>
-                <a href="{{ route('expenses.index', $navOrg->slug) }}" class="mobile-nav-link">Expenses</a>
-                <a href="{{ route('contributions.verify', $navOrg->slug) }}" class="mobile-nav-link flex items-center justify-between">
+                <a href="{{ route('organizations.index', $navContext->organization->slug) }}" class="mobile-nav-link">Dashboard</a>
+                <a href="{{ route('home', $navContext->organization->slug) }}" class="mobile-nav-link">Households</a>
+                <a href="{{ route('contributions.index', $navContext->organization->slug) }}" class="mobile-nav-link">Contributions</a>
+                <a href="{{ route('expenses.index', $navContext->organization->slug) }}" class="mobile-nav-link">Expenses</a>
+                <a href="{{ route('contributions.verify', $navContext->organization->slug) }}" class="mobile-nav-link flex items-center justify-between">
                     <span>Verify Contributions</span>
                     @if(($pendingVerificationCount ?? 0) > 0)
                         <span class="verify-badge inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-600 text-white text-xs font-semibold"
@@ -245,19 +227,10 @@
                 <hr class="my-2 border-gray-200">
 
                 @auth
-                <a href="{{ route('profile.edit', $navOrg ? ['organization' => $navOrg->slug] : []) }}" class="mobile-nav-link">Profile</a>
+                <a href="{{ route('profile.edit', $navContext->organization ? ['organization' => $navContext->organization->slug] : []) }}" class="mobile-nav-link">Profile</a>
 
-                @php
-                    $mobileIsAdmin = $navOrg
-                        ? auth()->user()->organizations()
-                            ->where('organizations.id', $navOrg->id)
-                            ->wherePivot('role', 'admin')
-                            ->exists()
-                        : false;
-                @endphp
-
-                @if($navOrg && $mobileIsAdmin)
-                    <a href="{{ route('organizations.settings.show', $navOrg->slug) }}" class="mobile-nav-link">Settings</a>
+                @if($navContext->organization && $navContext->isAdmin)
+                    <a href="{{ route('organizations.settings.show', $navContext->organization->slug) }}" class="mobile-nav-link">Settings</a>
                 @endif
 
                 <form method="POST" action="{{ route('logout') }}">
@@ -285,6 +258,53 @@
 
     <!-- ===== PAGE WRAPPER ===== -->
     <div class="pt-14 min-h-screen flex flex-col">
+
+        @auth
+            @php
+                $layoutPendingInvitations = \App\Models\OrganizationInvitation::where('email', auth()->user()->email)
+                    ->pending()
+                    ->with('organization')
+                    ->latest()
+                    ->get();
+            @endphp
+            @if($layoutPendingInvitations->isNotEmpty())
+                <div class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 mt-4">
+                    <div class="rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-4">
+                        <div class="flex items-start gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mt-0.5 text-indigo-600 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                            </svg>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-semibold text-indigo-900">
+                                    @if($layoutPendingInvitations->count() === 1)
+                                        You have a pending invitation
+                                    @else
+                                        You have {{ $layoutPendingInvitations->count() }} pending invitations
+                                    @endif
+                                </p>
+                                <ul class="mt-2 space-y-2">
+                                    @foreach($layoutPendingInvitations as $invitation)
+                                        <li class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-white rounded-lg border border-indigo-100 px-4 py-2.5">
+                                            <div class="text-sm text-gray-700">
+                                                <span class="font-medium text-gray-900">{{ $invitation->organization->name }}</span>
+                                                &mdash; join as
+                                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700">{{ $invitation->role()->label() }}</span>
+                                                <span class="text-xs text-gray-500 ml-1">expires {{ $invitation->expires_at->format('M j') }}</span>
+                                            </div>
+                                            <a href="{{ URL::signedRoute('invitations.show', ['invitation' => $invitation]) }}"
+                                               class="self-start sm:self-auto px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold">
+                                                Review
+                                            </a>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            @endif
+        @endauth
 
         <!-- Flash messages -->
         @if(session('success') || session('error') || session('info'))
@@ -325,7 +345,7 @@
         <footer class="border-t border-gray-200 bg-white">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
                 <p class="text-xs text-gray-400">
-                    &copy; {{ date('Y') }} HOA Manager &mdash; Household Contribution System
+                    &copy; {{ date('Y') }} BarangayBooks &mdash; Household books for Philippine HOAs
                 </p>
                 <p class="text-xs text-gray-400">v1.0</p>
             </div>

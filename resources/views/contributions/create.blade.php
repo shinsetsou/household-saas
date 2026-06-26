@@ -35,7 +35,7 @@
         </div>
 
         {{-- Form --}}
-        <form action="{{ route('contributions.store', [$organization, $household]) }}" method="POST"
+        <form action="{{ URL::signedRoute('contributions.store', [$organization, $household]) }}" method="POST"
               enctype="multipart/form-data" id="contribution-form" class="px-6 py-6 space-y-5">
             @csrf
 

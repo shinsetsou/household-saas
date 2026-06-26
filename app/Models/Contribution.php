@@ -15,7 +15,6 @@ class Contribution extends Model
         'amount',
         'photo',
         'status',
-        'admin_verified',
         'verification_status',
         'rejection_reason',
         'verified_by',
@@ -24,6 +23,8 @@ class Contribution extends Model
         'created_at',
         'updated_at',
     ];
+
+    protected $guarded = ['admin_verified'];
 
     protected function casts(): array
     {

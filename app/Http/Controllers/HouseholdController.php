@@ -6,6 +6,7 @@ use App\Models\Expense;
 use App\Models\Household;
 use App\Models\Organization;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class HouseholdController extends Controller
 {
@@ -13,25 +14,24 @@ class HouseholdController extends Controller
     {
         if (! empty($request->block) && ! empty($request->lot)) {
 
-            $household = Household::with(['contributions' => function ($query) {
-                $query->orderBy('created_at', 'desc'); // or any other column
-            }])->where('block', $request->block)
-                ->where('lot', $request->lot)->where('organization_id', $organization->id)->first();
+            $household = Household::where('block', $request->block)
+                ->where('lot', $request->lot)
+                ->where('organization_id', $organization->id)
+                ->first();
 
             if (empty($household)) {
                 return redirect()->back()->with('organization', $organization);
             }
 
-            // Calculate the total contributions for this household
-            $totalContributions = $household->contributions()->sum('amount');
-
-            // Calculate the total expenses for this household
-            $totalExpenses = Expense::where('organization_id', $organization->id)->sum('amount');
-
             $itemsPerPage = $request->input('itemsPerPage', 10); // Default to 10 items per page
             $contributions = $household->contributions()->orderBy('created_at', 'desc')->paginate($itemsPerPage);
 
-            return view('households.show', compact('household', 'contributions', 'itemsPerPage', 'organization', 'totalContributions', 'totalExpenses'));
+            $totals = $this->totalsFor($household, $organization);
+
+            return view('households.show', array_merge(
+                compact('household', 'contributions', 'itemsPerPage', 'organization'),
+                $totals
+            ));
         }
 
         if (! $request->user()) {
@@ -73,13 +73,12 @@ class HouseholdController extends Controller
         $itemsPerPage = $request->input('itemsPerPage', 10); // Default to 10 items per page
         $contributions = $household->contributions()->orderBy('created_at', 'desc')->paginate($itemsPerPage);
 
-        // Calculate the total contributions for this household
-        $totalContributions = $household->contributions()->sum('amount');
+        $totals = $this->totalsFor($household, $organization);
 
-        // Calculate the total expenses for this household
-        $totalExpenses = Expense::where('organization_id', $organization->id)->sum('amount');
-
-        return view('households.show', compact('household', 'contributions', 'itemsPerPage', 'organization', 'totalContributions', 'totalExpenses'));
+        return view('households.show', array_merge(
+            compact('household', 'contributions', 'itemsPerPage', 'organization'),
+            $totals
+        ));
     }
 
     public function edit(Organization $organization, Household $household)
@@ -111,5 +110,24 @@ class HouseholdController extends Controller
         $household->delete();
 
         return redirect()->route('households.index', $organization)->with('success', 'Household deleted successfully.');
+    }
+
+    private function totalsFor(Household $household, Organization $organization): array
+    {
+        $ttl = now()->addMinutes(5);
+
+        $totalContributions = Cache::remember(
+            "household:{$household->id}:contributions_sum",
+            $ttl,
+            fn () => (float) $household->contributions()->sum('amount')
+        );
+
+        $totalExpenses = Cache::remember(
+            "organization:{$organization->id}:expenses_sum",
+            $ttl,
+            fn () => (float) Expense::where('organization_id', $organization->id)->sum('amount')
+        );
+
+        return compact('totalContributions', 'totalExpenses');
     }
 }

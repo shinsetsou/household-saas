@@ -377,39 +377,52 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="max-w-2xl mx-auto text-center">
                     <p class="text-sm font-semibold text-brand-600 dark:text-brand-400 uppercase tracking-wider">Pricing</p>
-                    <h2 class="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">Free while we build with you.</h2>
-                    <p class="mt-4 text-slate-600 dark:text-slate-300">Founding HOAs lock in launch pricing forever. No card on file, no surprise invoices.</p>
+                    <h2 class="mt-2 text-3xl sm:text-4xl font-bold tracking-tight">Simple plans for every HOA size.</h2>
+                    <p class="mt-4 text-slate-600 dark:text-slate-300">14-day free trial on every plan. Cancel anytime. Pay via GCash, Maya, or card through PayMongo.</p>
                 </div>
 
-                <div class="mt-12 max-w-md mx-auto">
-                    <div class="relative rounded-3xl bg-gradient-to-br from-white to-brand-50/50 dark:from-slate-900 dark:to-brand-950/30 ring-2 ring-brand-500 p-8 shadow-2xl shadow-brand-900/10">
-                        <span class="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-brand-600 text-white shadow-lg">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span>
-                            Beta program
-                        </span>
+                <div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                    @php
+                        $pricingTiers = [
+                            ['name' => 'Community', 'price' => '199', 'households' => 'Up to 50 households', 'csv' => true, 'api' => false, 'highlight' => false],
+                            ['name' => 'Barangay', 'price' => '499', 'households' => 'Up to 250 households', 'csv' => true, 'api' => false, 'highlight' => true],
+                            ['name' => 'City', 'price' => '999', 'households' => 'Unlimited households', 'csv' => true, 'api' => true, 'highlight' => false],
+                        ];
+                    @endphp
 
-                        <h3 class="text-xl font-bold">Founding HOA</h3>
-                        <p class="mt-1 text-sm text-slate-600 dark:text-slate-400">For associations who join us during beta.</p>
+                    @foreach($pricingTiers as $tier)
+                        <div class="relative rounded-3xl {{ $tier['highlight'] ? 'bg-gradient-to-br from-white to-brand-50/50 dark:from-slate-900 dark:to-brand-950/30 ring-2 ring-brand-500 shadow-2xl shadow-brand-900/10' : 'bg-white dark:bg-slate-900 ring-1 ring-slate-200 dark:ring-slate-800 shadow-sm' }} p-8">
+                            @if($tier['highlight'])
+                                <span class="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-brand-600 text-white shadow-lg">
+                                    Most popular
+                                </span>
+                            @endif
 
-                        <div class="mt-6 flex items-baseline gap-2">
-                            <span class="text-5xl font-extrabold tracking-tight">&#8369;0</span>
-                            <span class="text-slate-500 dark:text-slate-400">/ month</span>
+                            <h3 class="text-xl font-bold {{ $tier['highlight'] ? '' : 'text-slate-900 dark:text-white' }}">{{ $tier['name'] }}</h3>
+
+                            <div class="mt-6 flex items-baseline gap-2">
+                                <span class="text-5xl font-extrabold tracking-tight">&#8369;{{ $tier['price'] }}</span>
+                                <span class="text-slate-500 dark:text-slate-400">/ month</span>
+                            </div>
+
+                            <ul class="mt-6 space-y-3 text-sm">
+                                <li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg><span>{{ $tier['households'] }}</span></li>
+                                <li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg><span>Photo-verified payments</span></li>
+                                <li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg><span>PDF / Excel / CSV reports</span></li>
+                                @if($tier['csv'])
+                                <li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg><span>CSV household import</span></li>
+                                @endif
+                                @if($tier['api'])
+                                <li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg><span>API access</span></li>
+                                @endif
+                            </ul>
+
+                            <a href="{{ route('register') }}" class="mt-8 block w-full text-center px-6 py-3.5 rounded-xl {{ $tier['highlight'] ? 'bg-brand-600 hover:bg-brand-700 text-white shadow-lg shadow-brand-900/20' : 'bg-slate-900 hover:bg-slate-800 text-white' }} font-semibold transition">
+                                Start 14-day trial
+                            </a>
+                            <p class="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">Card required after trial.</p>
                         </div>
-
-                        <ul class="mt-6 space-y-3 text-sm">
-                            <li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg><span>Unlimited households &amp; contributions</span></li>
-                            <li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg><span>All reports (PDF, Excel, CSV)</span></li>
-                            <li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg><span>Photo-verified payments</span></li>
-                            <li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg><span>Multi-organization access</span></li>
-                            <li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg><span>Email support &amp; founder access</span></li>
-                            <!--<li class="flex items-start gap-3"><svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg><span>Launch pricing locked in forever</span></li>-->
-                        </ul>
-
-                        <a href="{{ route('register') }}" class="mt-8 block w-full text-center px-6 py-3.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold shadow-lg shadow-brand-900/20 transition">
-                            Claim your free spot
-                        </a>
-                        <p class="mt-3 text-center text-xs text-slate-500 dark:text-slate-400">No credit card required.</p>
-                    </div>
+                    @endforeach
                 </div>
             </div>
         </section>

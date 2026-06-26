@@ -4,6 +4,38 @@
 
 @section('content')
 
+@if($organization->isExpired())
+    <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h2 class="text-sm font-semibold text-red-800">Your trial has ended</h2>
+            <p class="mt-1 text-sm text-red-700">New contributions, expenses, and member invites are disabled until you pick a plan.</p>
+        </div>
+        <a href="{{ route('organizations.settings.billing.show', $organization->slug) }}"
+           class="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 text-center">
+            Choose a plan
+        </a>
+    </div>
+@elseif($organization->isOnTrial() && ($days = $organization->daysUntilTrialEnds()) !== null && $days <= 7)
+    <div class="mb-6 rounded-xl border border-yellow-200 bg-yellow-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+            <h2 class="text-sm font-semibold text-yellow-800">
+                @if($days === 0)
+                    Your trial ends today
+                @elseif($days === 1)
+                    Your trial ends tomorrow
+                @else
+                    Your trial ends in {{ $days }} days
+                @endif
+            </h2>
+            <p class="mt-1 text-sm text-yellow-700">Pick a plan to keep your HOA's books running.</p>
+        </div>
+        <a href="{{ route('organizations.settings.billing.show', $organization->slug) }}"
+           class="px-4 py-2 rounded-lg bg-yellow-600 text-white text-sm font-semibold hover:bg-yellow-700 text-center">
+            Choose a plan
+        </a>
+    </div>
+@endif
+
 {{-- Page header --}}
 <div class="mb-8">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">

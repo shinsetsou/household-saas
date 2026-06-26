@@ -3,7 +3,9 @@
 namespace App\Providers;
 
 use App\Events\ContributionCreated;
+use App\Events\OrganizationInvitationSent;
 use App\Listeners\SendContributionAddedEmail;
+use App\Listeners\SendOrganizationInvitationEmail;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 
@@ -20,6 +22,9 @@ class EventServiceProvider extends ServiceProvider
         ],
         ContributionCreated::class => [
             SendContributionAddedEmail::class,
+        ],
+        OrganizationInvitationSent::class => [
+            SendOrganizationInvitationEmail::class,
         ],
     ];
 

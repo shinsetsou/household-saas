@@ -135,26 +135,7 @@ VITE_APP_NAME="${APP_NAME}"
 
 ---
 
-## ⚠️ Two issues to address before relying on B2
-
-### 1. B2 key is "not entitled" (must fix in Backblaze)
-
-Connectivity test against the current `.env` creds: the adapter reaches B2, signs correctly, and
-the endpoint resolves — but **every read and write returns `AccessDenied: not entitled`**.
-
-That is a Backblaze key-permission problem, not a code problem. Fix in the B2 dashboard:
-
-- The Application Key must have capabilities `listFiles`, `readFiles`, `writeFiles`, `deleteFiles`.
-- If the key is **restricted to a specific bucket**, that bucket must be exactly
-  `householdsaas-bucket` (a key scoped to a different bucket gives "not entitled").
-- Confirm the bucket name and region (`us-east-005`) match the key's bucket.
-- Easiest path: create a fresh Application Key scoped to `householdsaas-bucket` with all file
-  capabilities, then update `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`.
-
-Also required: `league/flysystem-aws-s3-v3` (now added to `composer.json`). Without it the S3 disk
-throws `Class "League\Flysystem\AwsS3V3\PortableVisibilityConverter" not found`.
-
-### 2. Receipt photos now upload to B2 (RESOLVED)
+## Receipt photo storage (Backblaze B2 via S3)
 
 `ContributionController::store` writes uploads to the **`s3`** disk:
 
@@ -162,16 +143,68 @@ throws `Class "League\Flysystem\AwsS3V3\PortableVisibilityConverter" not found`.
 $photoPath = $request->file('photo')->store('contributions', 's3');
 ```
 
-Display + email now read from B2 via the `Contribution::photo_url` accessor
-(`Storage::disk('s3')->url($photo)`) instead of the old local `asset('storage/...')`.
-Verified end-to-end against the live bucket (store → exists → url → delete).
+Display + email read from B2 via the `Contribution::photo_url` accessor
+(`Storage::disk('s3')->url($photo)`). On DB rollback the controller deletes the just-uploaded
+file from B2 so a failed submit doesn't leak orphans on the bucket.
 
-Requirements for this to keep working on Railway:
+Requirements:
 
-- The B2 bucket must be **Public** (the app stores receipts with `public-read` so the
-  `asset`-style public URL works). `config/filesystems.php` sets `'visibility' => 'public'`
-  on the `s3` disk for this reason — a Private bucket rejects it.
-- All `AWS_*` env vars set (see above). No Railway volume / `storage:link` needed for receipts.
+- `league/flysystem-aws-s3-v3` is in `composer.json` (required for the `s3` disk).
+- The B2 bucket must be **Public** — `config/filesystems.php` sets `'visibility' => 'public'`
+  on the `s3` disk so receipts are uploaded with `public-read`. A Private bucket rejects it.
+- All `AWS_*` env vars set (see top of doc). No Railway volume / `storage:link` needed for receipts.
+- `AWS_ENABLE_THROW=true` so S3 errors surface during diagnosis instead of silently returning null.
+
+### ⚠️ "not entitled" — fix in Backblaze, not code
+
+Symptom: the adapter reaches B2, signs correctly, the endpoint resolves — but **every read and
+write returns `AccessDenied: not entitled`**. This is always a Backblaze key-permission problem.
+
+**Step-by-step fix in the B2 dashboard:**
+
+1. B2 Cloud Storage → **App Keys** → **Create a New Application Key** (don't reuse an existing one;
+   the rotation is the whole point).
+2. **Name:** `barangaybooks-prod` (or anything).
+3. **Capabilities:** check **all four** — `listFiles`, `readFiles`, `writeFiles`, `deleteFiles`.
+   Missing any one of these is the most common cause of "not entitled".
+4. **Bucket Access:** either **All** or restricted to exactly `householdsaas-bucket`. **The bucket
+   name must match `AWS_BUCKET` byte-for-byte** (including case). A key scoped to a different
+   bucket gives "not entitled" even when capabilities are correct.
+5. **Region / endpoint:** confirm the bucket's region matches `AWS_ENDPOINT` —
+   `https://s3.us-east-005.backblazeb2.com` for a `us-east-005` bucket. Wrong region returns
+   "not entitled" or DNS failures.
+6. Copy the new `keyID` → `AWS_ACCESS_KEY_ID`, `applicationKey` → `AWS_SECRET_ACCESS_KEY` in
+   Railway Variables. **Redeploy** so `config:cache` re-bakes the env.
+
+### Verify the roundtrip from the Railway shell
+
+Run this in Railway's one-off shell (or locally with the production env) to confirm the key +
+endpoint + bucket are all aligned before the first real upload:
+
+```bash
+php artisan tinker
+```
+
+```php
+$disk = Storage::disk('s3');
+
+// write
+$disk->put('healthcheck.txt', 'ok-'.now()->toIso8601String());
+
+// read back
+$disk->get('healthcheck.txt');                       // => "ok-2026-..."
+
+// public URL (should resolve in browser)
+$disk->url('healthcheck.txt');
+
+// clean up
+$disk->delete('healthcheck.txt');
+$disk->exists('healthcheck.txt');                    // => false
+```
+
+If `put` throws `AccessDenied: not entitled`, the key capabilities or bucket scope are wrong
+(re-check steps 3 + 4 above). If it throws a DNS or signature error, the endpoint/region don't
+match (re-check step 5). Once the four-step roundtrip passes, real uploads will work.
 
 ---
 
@@ -180,6 +213,5 @@ Requirements for this to keep working on Railway:
 - [ ] Build logs show `npm run build` running and writing `public/build/assets/app-*.js`
 - [ ] Avatar dropdown opens (Alpine loaded) — hard refresh to bypass cache
 - [ ] `php artisan migrate --force` ran (check session/cache tables exist)
-- [ ] B2 key fixed and a test upload round-trips (see issue #1)
-- [ ] Receipt photo storage decided (B2 disk vs. volume — issue #2)
+- [ ] B2 key roundtrip (write → read → url → delete) passes (see above)
 - [ ] `APP_DEBUG=false`, `APP_ENV=production`
