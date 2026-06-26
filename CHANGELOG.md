@@ -2,6 +2,21 @@
 
 All notable changes to this project. Newest first.
 
+## [Unreleased] — 2026-07-04
+
+### Changed — Mail listener hardening
+
+- **All 3 mail listeners now swallow `TransportException` and log instead of bubbling up**:
+  - `app/Listeners/SendEmailVerificationNotification.php` — verification email failures no longer break user registration. Logged via `Log::error`.
+  - `app/Listeners/SendOrganizationInvitationEmail.php` — invitation email failures no longer break the invite flow. Logged.
+  - `app/Listeners/SendContributionAddedEmail.php` — contribution-added email failures no longer break contribution creation. Logged.
+
+  Before this change, a `MAIL_HOST` typo or a Mailtrap SMTP outage caused 500 errors on user registration, invitation accept, and contribution creation. Now these flows succeed; the email is logged and can be retried later.
+
+### Tests
+
+- `tests/Unit/Listeners/MailFailureListenerTest.php` — verifies the 3 listeners swallow `TransportException` and log via `Log::error`, and that successful sends don't log errors.
+
 ## [Unreleased] — 2026-07-03
 
 ### Changed — OnboardingService contract
