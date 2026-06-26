@@ -23,7 +23,7 @@ WORKDIR /var/www/html
 
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
-RUN composer install --no-dev --optimize-autoloader --ignore-platform-req=ext-fileinfo
+RUN composer install --no-dev --no-scripts --optimize-autoloader --ignore-platform-req=ext-fileinfo
 
 COPY . /var/www/html
 
