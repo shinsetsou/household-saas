@@ -12,16 +12,16 @@
         <p class="mt-1 text-xs text-gray-500">{{ $role->description() }}</p>
         <p class="mt-3 text-xs text-gray-500">This invitation expires {{ $invitation->expires_at->format('F j, Y') }}.</p>
 
-        <form method="POST" action="{{ route('invitations.accept', $invitation->token) }}" class="mt-6 flex gap-2">
+        <form method="POST" action="{{ URL::signedRoute('invitations.accept', ['invitation' => $invitation->token]) }}" class="mt-6 flex gap-2">
             @csrf
             <button type="submit" class="flex-1 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold">
                 Accept invitation
             </button>
         </form>
-        <form method="POST" action="{{ route('invitations.decline', $invitation->token) }}" class="mt-2">
+        <form method="POST" action="{{ URL::signedRoute('invitations.decline', ['invitation' => $invitation->token]) }}" class="mt-6 text-center" onsubmit="return confirm('Decline this invitation? This will permanently revoke the link and the inviter will need to send a new one if you change your mind.');">
             @csrf
-            <button type="submit" class="w-full px-5 py-2 rounded-lg bg-white hover:bg-gray-50 text-gray-700 text-sm font-semibold border border-gray-300">
-                Decline
+            <button type="submit" class="text-xs text-slate-500 hover:text-slate-700 hover:underline">
+                Decline this invitation
             </button>
         </form>
     </div>

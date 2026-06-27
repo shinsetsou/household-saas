@@ -82,6 +82,19 @@ class InvitationService
                 'email' => $invitation->email,
             ],
         );
+
+        $this->lockUserIfOrphan($invitation);
+    }
+
+    protected function lockUserIfOrphan(OrganizationInvitation $invitation): void
+    {
+        $user = User::whereRaw('LOWER(email) = ?', [strtolower($invitation->email)])->first();
+
+        if (! $user || $user->organizations()->exists()) {
+            return;
+        }
+
+        $user->lockInviteOrigin();
     }
 
     public function resend(OrganizationInvitation $invitation, User $actor): OrganizationInvitation
@@ -119,6 +132,8 @@ class InvitationService
             ]);
 
             $invitation->update(['accepted_at' => now()]);
+
+            $user->clearInviteOriginLock();
 
             AuditLog::record(
                 $invitation->organization,

@@ -21,7 +21,7 @@ services:
     laravel.test:
         build:
             context: .
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile.dev
             args:
                 WWWGROUP: '${WWWGROUP}'
         image: sail-8.3/app

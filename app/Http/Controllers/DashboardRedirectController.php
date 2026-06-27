@@ -13,10 +13,18 @@ class DashboardRedirectController extends Controller
 
         $latest = $user->organizations()->latest('organization_user.created_at')->first();
 
-        if ($latest === null) {
-            return redirect()->route('onboarding.organization.create');
+        if ($latest !== null) {
+            return redirect()->route('organizations.index', $latest);
         }
 
-        return redirect()->route('organizations.index', $latest);
+        if ($user->pendingInvitations()->isNotEmpty()) {
+            return redirect()->route('invitations.index');
+        }
+
+        if ($user->isInviteLocked()) {
+            return redirect()->route('invitations.locked');
+        }
+
+        return redirect()->route('onboarding.organization.create');
     }
 }

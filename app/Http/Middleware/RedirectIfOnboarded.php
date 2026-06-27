@@ -20,6 +20,14 @@ class RedirectIfOnboarded
         }
 
         if ($user && $sessionOrg === null && ! $user->organizations()->exists()) {
+            if ($user->pendingInvitations()->isNotEmpty()) {
+                return redirect()->route('invitations.index');
+            }
+
+            if ($user->isInviteLocked()) {
+                return redirect()->route('invitations.locked');
+            }
+
             return redirect()->route('onboarding.organization.create');
         }
 

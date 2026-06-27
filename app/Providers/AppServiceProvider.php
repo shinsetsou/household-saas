@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use App\Models\Contribution;
 use App\Models\Organization;
+use App\Models\OrganizationInvitation;
 use App\Models\Plan;
+use App\Observers\OrganizationInvitationObserver;
 use App\Services\Billing\BillingService;
 use App\Services\PayMongo\PayMongoClient;
 use App\Support\NavContext;
@@ -21,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        OrganizationInvitation::observe(OrganizationInvitationObserver::class);
+
         $this->ensurePlansExist();
 
         View::composer('layouts.layout', function ($view): void {

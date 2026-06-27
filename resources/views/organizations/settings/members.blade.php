@@ -138,7 +138,7 @@
 
                         <div class="flex items-center gap-1">
                             <button type="button"
-                                    data-copy-url="{{ route('organizations.settings.invitations.link', [$organization->slug, $invitation->id]) }}"
+                                    data-copy-url="{{ route('organizations.settings.invitations.link', [$organization->slug, $invitation->token]) }}"
                                     data-token="{{ $invitation->token }}"
                                     onclick="copyInviteLink(this)"
                                     class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
@@ -147,7 +147,7 @@
                                 <span>Copy link</span>
                             </button>
 
-                            <form method="POST" action="{{ route('organizations.settings.invitations.resend', [$organization->slug, $invitation->id]) }}" class="inline">
+                            <form method="POST" action="{{ route('organizations.settings.invitations.resend', [$organization->slug, $invitation->token]) }}" class="inline">
                                 @csrf
                                 <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/30 transition">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
@@ -155,7 +155,7 @@
                                 </button>
                             </form>
 
-                            <form method="POST" action="{{ route('organizations.settings.invitations.revoke', [$organization->slug, $invitation->id]) }}" class="inline" onsubmit="return confirm('Revoke this invitation?');">
+                            <form method="POST" action="{{ route('organizations.settings.invitations.revoke', [$organization->slug, $invitation->token]) }}" class="inline" onsubmit="return confirm('Revoke this invitation? The link will stop working immediately. You can resend a fresh link from this page if needed.');">
                                 @csrf
                                 <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3"/></svg>

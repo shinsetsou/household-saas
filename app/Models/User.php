@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\OrganizationRole;
-use App\Models\OrganizationInvitation;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -17,6 +16,11 @@ class User extends Authenticatable implements MustVerifyEmail
         'name',
         'email',
         'password',
+        'force_change_password',
+        'invitation_origin_org_slug',
+        'invitation_origin_role',
+        'invitation_origin_inviter_email',
+        'invitation_origin_revoked_at',
     ];
 
     protected $hidden = [
@@ -29,7 +33,38 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'force_change_password' => 'boolean',
+            'invitation_origin_revoked_at' => 'datetime',
         ];
+    }
+
+    public function needsPasswordChange(): bool
+    {
+        return (bool) $this->force_change_password;
+    }
+
+    public function wasInvited(): bool
+    {
+        return ! is_null($this->invitation_origin_org_slug);
+    }
+
+    public function isInviteLocked(): bool
+    {
+        return ! is_null($this->invitation_origin_revoked_at);
+    }
+
+    public function lockInviteOrigin(): void
+    {
+        if (is_null($this->invitation_origin_revoked_at)) {
+            $this->forceFill(['invitation_origin_revoked_at' => now()])->save();
+        }
+    }
+
+    public function clearInviteOriginLock(): void
+    {
+        if (! is_null($this->invitation_origin_revoked_at)) {
+            $this->forceFill(['invitation_origin_revoked_at' => null])->save();
+        }
     }
 
     public function organizations()

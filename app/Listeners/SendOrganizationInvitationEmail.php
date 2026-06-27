@@ -4,12 +4,11 @@ namespace App\Listeners;
 
 use App\Events\OrganizationInvitationSent;
 use App\Mail\OrganizationInvitationMail;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Symfony\Component\Mailer\Exception\TransportException;
 
-class SendOrganizationInvitationEmail implements ShouldQueue
+class SendOrganizationInvitationEmail
 {
     public function handle(OrganizationInvitationSent $event): void
     {

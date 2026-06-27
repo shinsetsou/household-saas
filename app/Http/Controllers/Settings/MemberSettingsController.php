@@ -11,13 +11,12 @@ use App\Models\User;
 use App\Services\InvitationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 use Illuminate\View\View;
 
 class MemberSettingsController extends Controller
 {
-    public function __construct(protected InvitationService $invitations)
-    {
-    }
+    public function __construct(protected InvitationService $invitations) {}
 
     public function show(Organization $organization): View
     {
@@ -83,9 +82,8 @@ class MemberSettingsController extends Controller
         abort_unless($invitation->organization_id === $organization->id, 404);
         abort_unless($invitation->isPending(), 404);
 
-        $url = url('/invitations/'.$invitation->token);
+        $url = URL::signedRoute('invitations.show', ['invitation' => $invitation->token]);
 
-        // Support JSON for the copy-to-clipboard JS and a plain response for manual paste.
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json(['url' => $url]);
         }

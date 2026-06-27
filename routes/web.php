@@ -13,6 +13,7 @@ use App\Http\Controllers\Onboarding\HouseholdsStepController;
 use App\Http\Controllers\Onboarding\OrganizationStepController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\OrganizationSettingsController;
+use App\Http\Controllers\PendingInvitationsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\Settings\MemberSettingsController;
@@ -33,10 +34,10 @@ Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/terms', 'legal.terms')->name('terms');
 
 Route::get('/dashboard', DashboardRedirectController::class)
-    ->middleware(['auth', 'verified'])
+    ->middleware(['auth', 'verified', 'force.password.change'])
     ->name('dashboard');
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified', 'force.password.change'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
@@ -69,7 +70,7 @@ Route::prefix('/{organization:slug}')->group(function () {
         ->middleware(['signed', 'throttle:5,1'])
         ->name('contributions.store');
 
-    Route::middleware(['auth', 'verified', EnsureOrganizationMember::class, EnsureOrganizationActive::class])->group(function () {
+    Route::middleware(['auth', 'verified', 'force.password.change', EnsureOrganizationMember::class, EnsureOrganizationActive::class])->group(function () {
         Route::get('dashboard', [OrganizationController::class, 'index'])->name('organizations.index');
 
         Route::middleware(EnsurePlanAllowsHousehold::class)->group(function () {
@@ -129,6 +130,12 @@ Route::prefix('/{organization:slug}')->group(function () {
 Route::get('/invitations/{invitation}', [InvitationController::class, 'show'])->middleware('signed')->name('invitations.show');
 Route::post('/invitations/{invitation}/accept', [InvitationController::class, 'accept'])->middleware(['auth', 'verified', 'signed'])->name('invitations.accept');
 Route::post('/invitations/{invitation}/decline', [InvitationController::class, 'decline'])->middleware(['auth', 'verified', 'signed'])->name('invitations.decline');
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/invitations', [PendingInvitationsController::class, 'index'])->name('invitations.index');
+    Route::delete('/invitations/{invitation}', [PendingInvitationsController::class, 'destroy'])->name('invitations.pending.destroy');
+    Route::get('/invitations/locked', [InvitationController::class, 'locked'])->name('invitations.locked');
+});
 
 Route::get('/billing/return/success', [BillingController::class, 'returnSuccess'])->name('billing.return.success');
 Route::get('/billing/return/cancel', [BillingController::class, 'returnCancel'])->name('billing.return.cancel');

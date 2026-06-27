@@ -3,18 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\OrganizationInvitation;
+use App\Models\User;
 use App\Services\InvitationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class InvitationController extends Controller
 {
-    public function __construct(protected InvitationService $invitations)
-    {
-    }
+    public function __construct(protected InvitationService $invitations) {}
 
     public function show(Request $request, OrganizationInvitation $invitation): View|RedirectResponse
     {
@@ -25,11 +25,42 @@ class InvitationController extends Controller
         $user = $request->user();
 
         if (! $user) {
+            $existing = User::whereRaw('LOWER(email) = ?', [strtolower($invitation->email)])->first();
+
+            if (! $existing) {
+                $existing = User::create([
+                    'name' => Str::before($invitation->email, '@'),
+                    'email' => $invitation->email,
+                    'password' => Str::random(64),
+                    'force_change_password' => true,
+                    'email_verified_at' => now(),
+                    'invitation_origin_org_slug' => $invitation->organization->slug,
+                    'invitation_origin_role' => $invitation->role,
+                    'invitation_origin_inviter_email' => $invitation->inviter?->email,
+                ]);
+            } else {
+                $existing->force_change_password = true;
+                $existing->email_verified_at = now();
+
+                if (! $existing->wasInvited()) {
+                    $existing->invitation_origin_org_slug = $invitation->organization->slug;
+                    $existing->invitation_origin_role = $invitation->role;
+                    $existing->invitation_origin_inviter_email = $invitation->inviter?->email;
+                    $existing->invitation_origin_revoked_at = null;
+                }
+
+                $existing->save();
+            }
+
+            Auth::login($existing);
+            $request->session()->regenerate();
+
             session(['invitation.intended_token' => $invitation->token]);
 
-            return redirect()->route('login', [
-                'email' => $invitation->email,
-            ]);
+            return redirect()->route('password.set.show')->with(
+                'info',
+                'Welcome! Set a password to finish joining '.$invitation->organization->name.'.',
+            );
         }
 
         if (strtolower($user->email) !== strtolower($invitation->email)) {
@@ -37,6 +68,12 @@ class InvitationController extends Controller
                 'email' => 'This invitation was sent to '.$invitation->email.'. Sign out and sign in with that email to accept.',
             ]);
         }
+
+        if (! $user->hasVerifiedEmail()) {
+            $user->forceFill(['email_verified_at' => now()])->save();
+        }
+
+        session(['invitation.intended_token' => $invitation->token]);
 
         return view('invitations.show', [
             'invitation' => $invitation,
@@ -76,5 +113,12 @@ class InvitationController extends Controller
         }
 
         return redirect()->route('dashboard')->with('info', 'Invitation declined.');
+    }
+
+    public function locked(Request $request): View
+    {
+        return view('invitations.locked', [
+            'user' => $request->user(),
+        ]);
     }
 }

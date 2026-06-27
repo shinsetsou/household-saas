@@ -42,6 +42,11 @@ class OrganizationInvitation extends Model
         });
     }
 
+    public function getRouteKeyName(): string
+    {
+        return 'token';
+    }
+
     public function organization(): BelongsTo
     {
         return $this->belongsTo(Organization::class);

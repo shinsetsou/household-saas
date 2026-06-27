@@ -3,19 +3,12 @@
 namespace App\Mail;
 
 use App\Models\OrganizationInvitation;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
-use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\URL;
 
-class OrganizationInvitationMail extends Mailable implements ShouldQueue
+class OrganizationInvitationMail extends Mailable
 {
-    use Queueable, SerializesModels;
-
-    public function __construct(public OrganizationInvitation $invitation)
-    {
-    }
+    public function __construct(public OrganizationInvitation $invitation) {}
 
     public function build(): self
     {

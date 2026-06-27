@@ -2,6 +2,131 @@
 
 All notable changes to this project. Newest first.
 
+## [Unreleased] — 2026-07-08
+
+### Fixed — Accept/Decline forms posted to unsigned URLs (403 invalid signature)
+
+- **`resources/views/invitations/show.blade.php:15,21`** — both forms used the plain `route()` helper to build their `action` attribute, which generates an unsigned URL (`/invitations/{token}/accept`). The `invitations.accept` and `invitations.decline` routes are gated by `signed` middleware (line 131-132 of `routes/web.php`), so POSTing the form 403'd with "invalid signature". Switched both to `URL::signedRoute('invitations.accept' / 'invitations.decline', ['invitation' => $invitation->token])` so the form action includes the `?signature=...` query param. The Accept form on the show page now correctly submits with a fresh signature.
+
+### Tests
+
+- `tests/Feature/InvitationTest.php::test_accept_form_action_is_signed_url` — asserts the rendered show view contains the signed accept URL in the form's `action` attribute. Catches regressions if anyone reverts to `route()`.
+- `tests/Feature/InvitationTest.php::test_decline_form_action_is_signed_url` — same guard for decline.
+- Updated 4 existing tests that called `route('invitations.accept' / 'invitations.decline', $invitation->token)` to use `URL::signedRoute(...)` instead. The unsigned variants would 403 against the now-clearly-signed routes — they were passing only because the test client wasn't actually exercising the middleware in some setups, masking the bug.
+
+## [Unreleased] — 2026-07-06
+
+### Fixed — Member invitation flow end-to-end
+
+The member invitation flow had three breakages that made invites unusable in practice. Fixed all three plus added a brand-new set-password screen so invitees without an existing account can actually join.
+
+#### Bug 1 — Invitation URL returned 404 on direct access
+
+- **`app/Models/OrganizationInvitation.php:46-49`** — added `getRouteKeyName(): 'token'`. Laravel's implicit route binding for `{invitation}` was looking up by primary key (`id`), but every URL builder (the email mailable, the `link` endpoint, the views) was generating paths from the 48-char `token`. The mismatch meant every invite URL hit `findOrFail(<token>)` → 404 model-not-found. The unit/feature tests were passing `route('invitations.show', $invitation->token)` but only because they faked at the route layer, never exercising the binding.
+- **`app/Http/Controllers/Settings/MemberSettingsController.php:86`** — the `link` action was building an *unsigned* URL (`url('/invitations/'.$token)`) while the route is gated by `signed` middleware. Direct browser access would 403. Switched to `URL::signedRoute('invitations.show', ['invitation' => $invitation->token])`.
+- **`resources/views/organizations/settings/members.blade.php:141,150,158`** — three `route(...)` calls passed `$invitation->id` for `link` / `resend` / `revoke`. All switched to `$invitation->token` to align with the new `getRouteKeyName`.
+- **`tests/Feature/InvitationTest.php:199,333,352,367`** — updated matching `route(...)` calls.
+
+#### Bug 2 — Invitation emails never reached Mailtrap
+
+- **`app/Listeners/SendOrganizationInvitationEmail.php`** — removed `implements ShouldQueue`. With `QUEUE_CONNECTION=database`, the listener + the mailable both implemented `ShouldQueue`, so the email sat in the `jobs` table until `php artisan queue:work` ran. The existing `MailFailureListenerTest::test_invitation_listener_succeeds_normally` actually asserted `Mail::assertSent(... 1)` + `Mail::assertQueued(... 0)`, confirming the team intended synchronous sending. Removed the queue trait and `Queueable`/`SerializesModels` imports from the mailable for the same reason.
+- The listener still catches `TransportException` and writes to `Log::error` so SMTP failures don't 500 the invite flow (per the [2026-07-04] hardening below).
+
+#### Bug 3 — `@component('mail::message')` / `@component('mail::button')` threw `InvalidArgumentException: No hint path defined for [mail]`
+
+- **`resources/views/emails/invitation/sent.blade.php`** — the view used Laravel's Markdown mail components, which require `php artisan vendor:publish --tag=laravel-mail` to drop the stubs into `resources/views/vendor/mail/`. The project never ran that publish. Rewrote as plain HTML using inline-styled markup, matching the existing `emails/contribution/added.blade.php` style. The mailable's `->view('emails.invitation.sent')` was already plain HTML — only the template body needed rewriting.
+
+### Added — Auto-register + set-password flow for invited users
+
+Visiting `/invitations/{token}` as an unauthenticated user used to bounce to `/login?email=...` with no way for the invitee to set a password. Replaced with auto-register + forced set-password:
+
+- **`database/migrations/2026_06_27_000002_add_force_change_password_to_users_table.php`** — adds `users.force_change_password` boolean (default `false`).
+- **`app/Models/User.php`** — `force_change_password` fillable + cast to bool + `needsPasswordChange()` helper.
+- **`app/Http/Controllers/InvitationController.php:30-72`** — when no user is logged in: look up the invitee's email; if no user exists, create one with a random 64-char password + `force_change_password = true` + `email_verified_at = now()` (the invite link itself proves inbox ownership); if a user already exists, set the flag. `Auth::login()`, store `invitation.intended_token` in the session, redirect to `/password/set`.
+- **`app/Http/Controllers/Auth/PasswordSetController.php`** — new controller. `show()` renders the form; `store()` validates with `Password::defaults()`, hashes the password, clears `force_change_password`, regenerates the session, and redirects back to `/invitations/{intended_token}` (or `dashboard` if no token).
+- **`app/Http/Middleware/ForcePasswordChange.php`** — new middleware (aliased as `force.password.change` in `bootstrap/app.php:31`). When `needsPasswordChange()` returns true, redirects to `password.set.show` except for `/password/set`, `/logout`, `/verify-email*`, `/email/verification-notification`. Applied to:
+  - `routes/web.php:36` — `/dashboard`
+  - `routes/web.php:39` — `/profile/*`
+  - `routes/web.php:72` — `/{organization:slug}/...` tenant group
+- **`resources/views/auth/set-password.blade.php`** — new view. Uses the existing `<x-guest-layout>` (brand panel + form panel) and `<x-password-input>` (show/hide toggle + strength meter) so it matches `auth/reset-password.blade.php` styling. Includes a "Wrong invitation? Sign out" escape hatch that posts to `/logout`.
+- **`routes/auth.php:11,55-58`** — imports `PasswordSetController` and registers `GET /password/set` (name `password.set.show`) + `POST /password/set` (name `password.set.store`) inside the `auth` group, gated by `force.password.change`.
+
+### Tests
+
+- `tests/Feature/InvitationTest.php::test_invite_auto_registers_new_user_and_redirects_to_set_password` — verifies the no-account visitor is created, `force_change_password` is set, `email_verified_at` is set, the user is authenticated, and `invitation.intended_token` is in the session before redirecting to `/password/set`.
+- `tests/Feature/InvitationTest.php::test_set_password_resumes_the_invitation` — verifies post-submit redirect to the original invite URL, flag cleared, session token consumed.
+- `tests/Feature/InvitationTest.php::test_force_password_change_middleware_blocks_dashboard` — `/dashboard` redirects to `/password/set` while the flag is set.
+- `tests/Feature/InvitationTest.php::test_force_password_change_allows_set_password_and_logout` — verifies the allowlist (the user can reach `/password/set` and `/logout` to escape).
+- `tests/Feature/InvitationTest.php::test_signed_invite_url_works_end_to_end` — exercises the signed URL against a real logged-in invitee; the route binding by token is end-to-end verified.
+
+### Fixed — Decline button silently killed invitations
+
+- **`resources/views/invitations/show.blade.php`** — the Decline form was stacked directly under the Accept button and visually equivalent. `InvitationController::decline` writes `revoked_at = now()` immediately on POST, so an accidental click permanently revoked the invite. Three changes: (a) demoted the Decline button to a small underlined text link (`text-xs text-slate-500 hover:underline`) at the bottom of the card so it can't be tapped by accident; (b) added a stronger `onsubmit="return confirm('Decline this invitation? This will permanently revoke the link and the inviter will need to send a new one if you change your mind.');"` so the browser catches the click; (c) Accept remains unguarded (it's reversible — admin can remove the member).
+- **`resources/views/organizations/settings/members.blade.php:158`** — admin-side Revoke form got a stronger confirm message: "Revoke this invitation? The link will stop working immediately. You can resend a fresh link from this page if needed." Previously was a one-line "Revoke this invitation?" — too easy to OK through.
+
+### Added — `OrganizationInvitationObserver` audit trail
+
+- **`app/Observers/OrganizationInvitationObserver.php`** — new observer. On the `updating` event, captures any transition of `revoked_at` from `null` to non-null, and any transition of `accepted_at` from `null` to non-null. Logs to `Log::warning('invitation.revoked', [...])` with full request context (route name, HTTP method, path, IP, authenticated user id/email). Also writes an `audit_logs` row with `action = organization.member.invitation_revoked` and `source = observer`. This makes future "who revoked this?" mysteries answerable from the DB alone.
+- **`app/Providers/AppServiceProvider.php:24`** — registered `OrganizationInvitation::observe(OrganizationInvitationObserver::class)`.
+- `tests/Feature/InvitationTest.php::test_revoke_writes_audit_log_with_observer` — verifies the audit row is written when an admin clicks Revoke.
+- `tests/Feature/InvitationTest.php::test_decline_writes_audit_log_with_observer` — verifies the same on Decline.
+- `tests/Feature/InvitationTest.php::test_invite_view_shows_strong_decline_confirmation` — verifies the show view still contains the `onsubmit="return confirm(..."` attribute (catches regressions if anyone refactors the view).
+
+### Fixed — Invitees who skipped Accept were dumped into the onboarding flow
+
+- **`app/Http/Controllers/DashboardRedirectController.php`** — was redirecting to `onboarding.organization.create` whenever the user had no org membership, even if they had a pending invitation sitting in their inbox. So a Treasurer invitee who set their password but never clicked Accept would land on the "create your HOA" wizard — the system treated them as a brand-new user. New ordering: **org membership → pending invitations → onboarding**. If they have pending invites, they're sent to a list view to review them.
+- **`app/Http/Middleware/RedirectIfOnboarded.php`** — same logic applied to the onboarding wizard guard. Users without orgs but with pending invites are redirected to the invite list instead of the wizard.
+- **`app/Http/Controllers/PendingInvitationsController.php`** — new controller. `index()` lists the user's pending invitations (with inviter, role, signed URL, days-to-expire), `destroy()` lets them decline from the list. Email-match guard prevents accidentally declining someone else's invite.
+- **`resources/views/invitations/pending.blade.php`** — new view. Card per pending invitation: org logo initial, inviter name, role chip, expiry countdown, "Review & accept" button (links to the signed `invitations.show` URL), "Decline" text link with confirm dialog.
+- **`routes/web.php:133-136`** — new `GET /invitations` (name `invitations.index`) and `DELETE /invitations/{invitation}` (name `invitations.pending.destroy`) inside the `auth + verified` group.
+- 5 new tests in `tests/Feature/InvitationTest.php`: dashboard routing order (pending > onboarding), index view renders, destroy sets revoked_at, destroy 403s for non-matching email, dashboard routes to org when member.
+
+### Fixed — Email verification required after accepting an invite
+
+- **`app/Http/Controllers/InvitationController.php:40`** — was using `$existing->email_verified_at ?? now()` (preserve-if-set). If an invitee's `User` row existed with `email_verified_at = null` (e.g. they registered earlier but never clicked the verify link), the null-coalesce left it null, and `EnsureEmailIsVerified` bounced them to `/verify-email` after Accept. Changed to `now()` unconditionally — the invite link itself is the trust proof.
+- **`app/Http/Controllers/InvitationController.php:64-66`** — added a check for the case where a user is *already logged in* (e.g. they have an active session, click an invite link from their email) and their `email_verified_at` is null. The view branch was leaving it untouched. Now `forceFill(['email_verified_at' => now()])` runs before rendering the invite page, so the subsequent Accept isn't bounced.
+- `tests/Feature/InvitationTest.php::test_invite_show_marks_logged_in_user_as_verified` — `User::factory()->unverified()` clicks the invite show, gets verified.
+- `tests/Feature/InvitationTest.php::test_accepting_invitation_does_not_bounce_to_verify` — full accept → org dashboard redirect.
+
+### Fixed — `set-password` redirected to an unsigned invitation URL (403 invalid signature)
+
+- **`app/Http/Controllers/Auth/PasswordSetController.php:34`** — was using `route('invitations.show', ['invitation' => $token])` to build the post-submit redirect. That helper generates an unsigned URL (`/invitations/{token}`), but the route is gated by `signed` middleware → 403 "invalid signature". Switched to `URL::signedRoute(...)` so the redirect contains a fresh signature tied to the token.
+- `tests/Feature/InvitationTest.php::test_set_password_resumes_the_invitation` updated to assert the signed URL form.
+- `tests/Feature/InvitationTest.php::test_set_password_redirect_to_invitation_url_is_signed_and_resolvable` — new. Pulls the `Location` header from the actual response and follows it, asserting 200 + "Accept invitation" copy. Catches the regression end-to-end.
+
+## [Unreleased] — 2026-07-07
+
+### Fixed — Invitees with revoked invites silently became admins of a brand-new org
+
+**The bug**: when a Treasurer (or any role) was invited, set their password, then had their invite revoked (or it expired) before clicking Accept, their `/dashboard` redirect treated them as a brand-new user and dumped them into the onboarding wizard. The wizard then auto-attached them as **Admin** of a fresh org (`OnboardingService::createOrganizationForUser` line 32) — disconnected from the HOA they were originally invited to. No warning, no audit trail, real risk of identity confusion and accidental admin powers.
+
+**The fix**: track each user's invite origin. If the originating invite is revoked before they join, they get soft-locked out of the onboarding wizard with a clear explainer page. Recovery: accept a new invite to the same email and the lock clears automatically.
+
+- **`database/migrations/2026_07_06_000001_add_invitation_origin_columns_to_users_table.php`** — adds four nullable columns to `users`: `invitation_origin_org_slug` (indexed), `invitation_origin_role`, `invitation_origin_inviter_email`, `invitation_origin_revoked_at` (indexed). All nullable so the migration is safe to run on existing rows.
+- **`app/Models/User.php`** — added fillable entries, datetime cast for `invitation_origin_revoked_at`, and four helpers:
+  - `wasInvited(): bool` — origin slug is set
+  - `isInviteLocked(): bool` — revoke timestamp is set
+  - `lockInviteOrigin(): void` — sets the timestamp (idempotent)
+  - `clearInviteOriginLock(): void` — clears the timestamp (idempotent)
+- **`app/Http/Controllers/InvitationController.php`** — auto-register branch (lines 30-58) now records the origin columns on `User::create([...])`, and on the "else" branch (existing user found by email) sets origin fields only if `wasInvited()` is false (don't overwrite a prior origin). New `locked()` action returns the explainer view.
+- **`app/Services/InvitationService.php`** — `revoke()` calls a new protected `lockUserIfOrphan()` helper that finds the user by email and locks them if they have no org membership. `accept()` calls `$user->clearInviteOriginLock()` inside the transaction so the lock is cleared exactly when the user joins.
+- **`app/Observers/OrganizationInvitationObserver.php`** — extended. The existing revoke-transition handler now also calls the new `lockOrphanedUserForInvite()` helper as a defense-in-depth layer. Idempotent — no-op if user already has any org membership.
+- **`app/Http/Controllers/DashboardRedirectController.php`** — new redirect order: **org membership → pending invitations → invite locked → onboarding**. Locked users land on the explainer page, not the wizard.
+- **`app/Http/Middleware/RedirectIfOnboarded.php`** — same redirect order added for the onboarding guard.
+- **`routes/web.php:138`** — `GET /invitations/locked` (name `invitations.locked`) inside the `auth + verified` group.
+- **`resources/views/invitations/locked.blade.php`** — new view. Card with rose-100 icon, "Your invitation was revoked" headline, body showing origin org + role + inviter email (mailto link), revoke timestamp, "Sign out" button, and "Create your own HOA instead →" escape hatch so the user is never trapped.
+
+### Tests
+
+6 new tests in `tests/Feature/InvitationTest.php`:
+
+- `test_auto_registration_stores_invitation_origin` — verifies origin columns populated on User::create.
+- `test_revoking_invite_locks_orphan_user` — verifies `lockUserIfOrphan()` sets the timestamp.
+- `test_revoking_invite_does_not_lock_user_with_existing_org_membership` — verifies the "has any org membership" guard.
+- `test_dashboard_redirects_to_locked_page_when_invite_was_revoked` — verifies the new dashboard redirect order.
+- `test_accepting_new_invite_clears_invitation_origin_lock` — verifies the recovery path: revoke → re-invite → accept → lock cleared → user joins as intended.
+- `test_locked_page_renders_with_inviter_contact` — verifies the view shows origin org slug, role, and inviter email.
+
 ## [Unreleased] — 2026-07-05
 
 ### Added — Mailtrap Email API support
