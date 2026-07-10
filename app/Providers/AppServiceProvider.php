@@ -25,6 +25,10 @@ class AppServiceProvider extends ServiceProvider
     {
         OrganizationInvitation::observe(OrganizationInvitationObserver::class);
 
+        if (! $this->shouldSeedPlans()) {
+            return;
+        }
+
         $this->ensurePlansExist();
 
         View::composer('layouts.layout', function ($view): void {
@@ -48,6 +52,40 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
+     * Skip plan seeding during artisan cache commands and migrations.
+     * - `config:cache`/`route:cache`/`view:cache` fire during the build image
+     *   on hosts like Railway where the DB host (`*.railway.internal`) isn't
+     *   resolvable yet, and a `Schema::hasTable` call will hard-fail the build.
+     * - `migrate` runs before the `plans` table exists, so `seedDefaultPlans`
+     *   would just `updateOrCreate` against a missing table anyway.
+     */
+    protected function shouldSeedPlans(): bool
+    {
+        if (! app()->runningInConsole()) {
+            return true;
+        }
+
+        $command = $_SERVER['argv'][1] ?? null;
+
+        return ! in_array($command, [
+            'config:cache',
+            'config:clear',
+            'route:cache',
+            'route:clear',
+            'view:cache',
+            'view:clear',
+            'event:cache',
+            'event:clear',
+            'migrate',
+            'migrate:fresh',
+            'migrate:install',
+            'migrate:rollback',
+            'migrate:reset',
+            'package:discover',
+        ], true);
+    }
+
+    /**
      * The plans catalog is read from the DB by every billing surface (billing
      * page, signup onboarding, downgrade flow, webhook handler). A missing plan
      * row silently breaks upgrade UI — so we make sure all three exist on every
@@ -55,11 +93,11 @@ class AppServiceProvider extends ServiceProvider
      */
     protected function ensurePlansExist(): void
     {
-        if (! Schema::hasTable('plans')) {
-            return;
-        }
-
         try {
+            if (! Schema::hasTable('plans')) {
+                return;
+            }
+
             app(BillingService::class)->seedDefaultPlans();
         } catch (\Throwable $e) {
             // Boot-time seed must never break the request cycle. The next
