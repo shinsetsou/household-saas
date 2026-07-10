@@ -76,6 +76,8 @@ class AppServiceProvider extends ServiceProvider
             'view:clear',
             'event:cache',
             'event:clear',
+            'optimize',
+            'optimize:clear',
             'migrate',
             'migrate:fresh',
             'migrate:install',
