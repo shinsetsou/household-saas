@@ -1,4 +1,4 @@
-<x-emails.layout :preview="$invitation->inviter->name . ' invited you to join ' . $invitation->organization->name . ' on BarangayBooks'" :title="'You\'re invited to ' . $invitation->organization->name">
+<x-emails::layout :preview="$invitation->inviter->name . ' invited you to join ' . $invitation->organization->name . ' on BarangayBooks'" :title="'You\'re invited to ' . $invitation->organization->name">
     <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#0f172a;">
         You've been invited to {{ $invitation->organization->name }}
     </h1>
@@ -37,4 +37,4 @@
     <p style="margin:24px 0 0;color:#64748b;font-size:13px;">
         Thanks,<br>The BarangayBooks team
     </p>
-</x-emails.layout>
+</x-emails::layout>

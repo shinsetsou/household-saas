@@ -1,4 +1,4 @@
-<x-emails.layout :preview="'A new contribution has been added for household #' . $contributionData['household_id']" :title="'New Contribution Added'">
+<x-emails::layout :preview="'A new contribution has been added for household #' . $contributionData['household_id']" :title="'New Contribution Added'">
     <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#0f172a;">New contribution added</h1>
 
     <p style="margin:0 0 16px;">
@@ -29,4 +29,4 @@
     <p style="margin:24px 0 0;color:#64748b;font-size:13px;">
         Thanks,<br>The BarangayBooks team
     </p>
-</x-emails.layout>
+</x-emails::layout>

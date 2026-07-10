@@ -2,7 +2,7 @@
     $billingUrl = route('organizations.settings.billing.show', $org->slug);
 @endphp
 
-<x-emails.layout :preview="'Your BarangayBooks free trial ends ' . $org->trial_ends_at->format('F j, Y')" :title="'Your trial ends ' . $urgency">
+<x-emails::layout :preview="'Your BarangayBooks free trial ends ' . $org->trial_ends_at->format('F j, Y')" :title="'Your trial ends ' . $urgency">
     <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#0f172a;">Your trial ends {{ $urgency }}</h1>
 
     <p style="margin:0 0 16px;">Hi {{ $org->name }} admin,</p>
@@ -29,4 +29,4 @@
     <p style="margin:24px 0 0;color:#64748b;font-size:13px;">
         Thanks,<br>The BarangayBooks team
     </p>
-</x-emails.layout>
+</x-emails::layout>

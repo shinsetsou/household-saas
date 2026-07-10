@@ -10,6 +10,7 @@ use App\Observers\OrganizationInvitationObserver;
 use App\Services\Billing\BillingService;
 use App\Services\PayMongo\PayMongoClient;
 use App\Support\NavContext;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -24,6 +25,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         OrganizationInvitation::observe(OrganizationInvitationObserver::class);
+
+        // Register the `emails` namespace so `<x-emails::layout>` resolves to
+        // App\View\Components\Emails\Layout. This is belt-and-suspenders for
+        // the anonymous component lookup at resources/views/components/emails/.
+        Blade::componentNamespace('App\\View\\Components\\Emails', 'emails');
 
         if (! $this->shouldSeedPlans()) {
             return;

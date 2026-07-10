@@ -3,7 +3,7 @@
     $trialEndLabel = optional($org->trial_ends_at)->format('F j, Y') ?? 'today';
 @endphp
 
-<x-emails.layout :preview="'Your BarangayBooks free trial ended on ' . $trialEndLabel" :title="'Your trial has ended'">
+<x-emails::layout :preview="'Your BarangayBooks free trial ended on ' . $trialEndLabel" :title="'Your trial has ended'">
     <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#0f172a;">Your trial has ended</h1>
 
     <p style="margin:0 0 16px;">Hi {{ $org->name }} admin,</p>
@@ -27,4 +27,4 @@
     <p style="margin:24px 0 0;color:#64748b;font-size:13px;">
         Thanks,<br>The BarangayBooks team
     </p>
-</x-emails.layout>
+</x-emails::layout>
