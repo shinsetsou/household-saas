@@ -32,7 +32,7 @@
         </div>
 
         {{-- Form --}}
-        <form action="{{ route('expenses.store', $organization) }}" method="POST" id="expense-form" class="px-6 py-6 space-y-5">
+        <form action="{{ route('expenses.store', $organization) }}" method="POST" enctype="multipart/form-data" id="expense-form" class="px-6 py-6 space-y-5">
             @csrf
 
             {{-- Description --}}
@@ -76,6 +76,56 @@
                         </svg>
                         {{ $message }}
                     </p>
+                @enderror
+            </div>
+
+            {{-- Status --}}
+            <div>
+                <label for="status" class="form-label">Payment status</label>
+                <select id="status" name="status"
+                        class="mt-1.5 form-input @error('status') form-input-error @enderror">
+                    <option value="pending" {{ old('status', 'pending') === 'pending' ? 'selected' : '' }}>Pending — record now, pay later</option>
+                    <option value="paid" {{ old('status') === 'paid' ? 'selected' : '' }}>Paid — already settled</option>
+                </select>
+                <p class="mt-1 text-xs text-gray-500">You can mark a pending expense as paid later from the expense list.</p>
+                @error('status')
+                    <p class="mt-1.5 error-msg">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Receipt --}}
+            <div>
+                <label for="receipt" class="form-label">
+                    Receipt <span class="text-xs font-normal text-gray-400">(optional)</span>
+                </label>
+                <div class="mt-1.5 flex items-center gap-3">
+                    <label class="flex-1 cursor-pointer">
+                        <input type="file" id="receipt" name="receipt" accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+                               class="sr-only"
+                               onchange="document.getElementById('receipt-name').textContent = this.files[0]?.name || 'No file chosen'">
+                        <span class="inline-flex items-center justify-center w-full px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+                            Choose file
+                        </span>
+                    </label>
+                    <span id="receipt-name" class="text-xs text-gray-500 truncate flex-1">No file chosen</span>
+                </div>
+                <p class="mt-1 text-xs text-gray-500">JPG, PNG, GIF, WebP, or PDF up to 4MB.</p>
+                @error('receipt')
+                    <p class="mt-1.5 error-msg">{{ $message }}</p>
+                @enderror
+            </div>
+
+            {{-- Notes --}}
+            <div>
+                <label for="notes" class="form-label">
+                    Notes <span class="text-xs font-normal text-gray-400">(optional)</span>
+                </label>
+                <textarea id="notes" name="notes" rows="3"
+                          placeholder="Vendor name, reference number, or any context…"
+                          class="mt-1.5 form-input @error('notes') form-input-error @enderror">{{ old('notes') }}</textarea>
+                @error('notes')
+                    <p class="mt-1.5 error-msg">{{ $message }}</p>
                 @enderror
             </div>
 

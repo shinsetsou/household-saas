@@ -96,7 +96,17 @@ Route::prefix('/{organization:slug}')->group(function () {
 
         Route::resource('expenses', ExpenseController::class)
             ->middleware(EnsureOrganizationRole::class.':admin,treasurer')
-            ->except(['show', 'edit', 'update', 'destroy']);
+            ->except(['edit', 'update', 'destroy']);
+
+        Route::post('expenses/{expense}/mark-paid', [ExpenseController::class, 'markPaid'])
+            ->middleware(EnsureOrganizationRole::class.':admin,treasurer')
+            ->name('expenses.mark-paid');
+        Route::post('expenses/{expense}/cancel', [ExpenseController::class, 'markCancelled'])
+            ->middleware(EnsureOrganizationRole::class.':admin,treasurer')
+            ->name('expenses.cancel');
+        Route::post('expenses/{expense}/restore', [ExpenseController::class, 'restore'])
+            ->middleware(EnsureOrganizationRole::class.':admin,treasurer')
+            ->name('expenses.restore');
 
         Route::get('reports/contributions', [ReportController::class, 'contributions'])->name('reports.contributions.index');
         Route::get('reports/contributions/export/pdf', [ReportController::class, 'contributionsPdf'])->name('reports.contributions.export.pdf');

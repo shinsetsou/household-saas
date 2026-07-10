@@ -16,8 +16,25 @@ class ExpenseFactory extends Factory
             'organization_id' => Organization::factory(),
             'amount' => $this->faker->randomFloat(2, 10, 1000),
             'description' => $this->faker->sentence,
+            'status' => Expense::STATUS_PENDING,
+            'notes' => null,
             'created_at' => $this->faker->dateTimeThisYear,
             'updated_at' => $this->faker->dateTimeThisYear,
         ];
+    }
+
+    public function paid(): static
+    {
+        return $this->state(fn () => [
+            'status' => Expense::STATUS_PAID,
+            'paid_at' => now(),
+        ]);
+    }
+
+    public function cancelled(): static
+    {
+        return $this->state(fn () => [
+            'status' => Expense::STATUS_CANCELLED,
+        ]);
     }
 }
