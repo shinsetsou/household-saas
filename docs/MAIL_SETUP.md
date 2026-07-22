@@ -22,8 +22,8 @@ tail -f storage/logs/laravel.log
 
 Pick a real provider. The codebase supports:
 
+- **`mailtrap`** — Mailtrap transactional Email API (HTTP). Default recommendation.
 - **`smtp`** — generic SMTP. Use Postmark / Mailgun / SES / SendGrid / etc.
-- **`mailtrap`** — Mailtrap's transactional Email API (HTTP, not SMTP).
 
 ### ⚠️ Mailtrap sandbox SMTP does NOT work from production
 
@@ -39,18 +39,22 @@ Symfony\Component\Mailer\Exception\TransportException:
 Connection could not be established with host "sandbox.smtp.mailtrap.io"
 ```
 
-…you are using sandbox credentials in production. Switch to a real provider.
+…you are using sandbox credentials in production. Switch to the Email API (Option A) or a different provider.
 
-### Option A — Mailtrap Email API (HTTP)
+The app also **warns at boot** when it detects this misconfiguration in production — search `storage/logs/laravel.log` for `mail.driver.sandbox_in_production`.
 
-Recommended if you already have a Mailtrap account.
+### Option A — Mailtrap Email API (HTTP) — recommended
+
+Use the Mailtrap transactional Email API. Works from any cloud IP because it speaks HTTPS, not SMTP.
 
 ```bash
+# One-time, locally:
 composer require mailtrap/mailtrap-laravel
 ```
 
+Then in production env:
+
 ```bash
-# .env
 MAIL_MAILER=mailtrap
 MAILTRAP_API_TOKEN=<from Mailtrap dashboard → Email Sending → API tokens>
 MAILTRAP_INBOX_ID=<default inbox id>
@@ -58,7 +62,7 @@ MAIL_FROM_ADDRESS="hello@your-domain.tld"
 MAIL_FROM_NAME="BarangayBooks"
 ```
 
-The package registers `mailtrap` as a mail transport. No SMTP needed. Works from cloud IPs.
+The package registers `mailtrap` as a mail transport. No SMTP host/port/credentials needed. Works from cloud IPs. Use the Email Sending dashboard, **not** the Sandbox inbox — they're different products.
 
 ### Option B — Postmark / SES / Mailgun / SendGrid
 
@@ -68,8 +72,8 @@ Standard SMTP. Set:
 MAIL_MAILER=smtp
 MAIL_HOST=<provider's SMTP host>
 MAIL_PORT=587
-MAIL_USERNAME=<username or api-key>
-MAIL_PASSWORD=<password or api-secret>
+MAIL_USERNAME=<provider's SMTP host>
+MAIL_PASSWORD=<api-key or password>
 MAIL_ENCRYPTION=tls
 ```
 

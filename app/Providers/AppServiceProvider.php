@@ -11,6 +11,7 @@ use App\Services\Billing\BillingService;
 use App\Services\PayMongo\PayMongoClient;
 use App\Support\NavContext;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -36,6 +37,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         $this->ensurePlansExist();
+        $this->warnOnMisconfiguredMail();
 
         View::composer('layouts.layout', function ($view): void {
             $org = $this->resolveOrganization($view);
@@ -111,6 +113,35 @@ class AppServiceProvider extends ServiceProvider
             // Boot-time seed must never break the request cycle. The next
             // request will retry.
             report($e);
+        }
+    }
+
+    /**
+     * Mailtrap's sandbox SMTP endpoint is IP-allowlisted and unreachable from
+     * cloud hosts (Railway, Render, AWS, GCP, Azure, Fly). Using it in
+     * production causes every email to hang until the 30s PHP timeout fires.
+     * Catch the misconfiguration at boot and log it loudly so it's visible
+     * in `storage/logs/laravel.log` instead of surfacing as user-facing
+     * TransportException stack traces.
+     *
+     * Dev / local is exempted — sandbox SMTP works fine from a developer
+     * machine and that's its intended use.
+     */
+    protected function warnOnMisconfiguredMail(): void
+    {
+        if (! app()->environment('production')) {
+            return;
+        }
+
+        $mailer = (string) config('mail.default');
+        $host = (string) config('mail.mailers.smtp.host');
+
+        if ($mailer === 'smtp' && $host === 'sandbox.smtp.mailtrap.io') {
+            Log::error('mail.driver.sandbox_in_production', [
+                'mailer' => $mailer,
+                'host' => $host,
+                'fix' => 'Switch to MAIL_MAILER=mailtrap with MAILTRAP_API_TOKEN + MAILTRAP_INBOX_ID (Mailtrap Email API). See docs/MAIL_SETUP.md.',
+            ]);
         }
     }
 

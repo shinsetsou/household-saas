@@ -108,13 +108,15 @@ SESSION_DRIVER=database
 CACHE_STORE=database
 QUEUE_CONNECTION=database
 
-# --- Mail (Mailtrap or real SMTP) ---
-MAIL_MAILER=smtp
-MAIL_HOST=sandbox.smtp.mailtrap.io
-MAIL_PORT=2525
-MAIL_USERNAME=...
-MAIL_PASSWORD=...
-MAIL_FROM_ADDRESS="hello@example.com"
+# --- Mail (Mailtrap Email API — recommended; works from cloud IPs) ---
+# Sandbox SMTP (sandbox.smtp.mailtrap.io) is dev-only and unreachable from Railway.
+# See docs/MAIL_SETUP.md §"Sandbox vs Email API" for details.
+# 1. composer require mailtrap/mailtrap-laravel   (one-time, locally)
+# 2. In Railway Variables set:
+MAIL_MAILER=mailtrap
+MAILTRAP_API_TOKEN=<from Mailtrap dashboard → Email Sending → API tokens>
+MAILTRAP_INBOX_ID=<default inbox id>
+MAIL_FROM_ADDRESS="hello@your-domain.tld"
 MAIL_FROM_NAME="${APP_NAME}"
 
 # --- Storage / Backblaze B2 (S3-compatible) ---
@@ -214,4 +216,5 @@ match (re-check step 5). Once the four-step roundtrip passes, real uploads will 
 - [ ] Avatar dropdown opens (Alpine loaded) — hard refresh to bypass cache
 - [ ] `php artisan migrate --force` ran (check session/cache tables exist)
 - [ ] B2 key roundtrip (write → read → url → delete) passes (see above)
+- [ ] Mail works: trigger an invite or trial-expiry email and confirm it lands in Mailtrap (or check `storage/logs/laravel.log` if you don't have a real driver). The app warns at boot if `MAIL_MAILER=smtp` points at `sandbox.smtp.mailtrap.io` — search logs for `"sandbox.smtp.mailtrap.io"`.
 - [ ] `APP_DEBUG=false`, `APP_ENV=production`
