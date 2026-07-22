@@ -47,25 +47,26 @@ The app also **warns at boot** when it detects this misconfiguration in producti
 
 Use the Mailtrap transactional Email API. Works from any cloud IP because it speaks HTTPS, not SMTP.
 
-`symfony/mailtrap-mailer` is already in `composer.json` (pulled in via `composer install`), so the `mailtrap` transport is always registered. No extra `composer require` step.
+This project uses the official **`railsware/mailtrap-php`** Laravel bridge (already in `composer.json` + `composer.lock`). Its service provider auto-registers the `mailtrap` mailer and reads three env vars.
 
 In production env, set:
 
 ```bash
 MAIL_MAILER=mailtrap
-# Live transactional API:
-MAIL_MAILTRAP_DSN=mailtrap+api://YOUR_TOKEN@default
+MAILTRAP_HOST=send.api.mailtrap.io          # or sandbox.api.mailtrap.io / bulk.api.mailtrap.io
+MAILTRAP_API_KEY=<from Mailtrap dashboard → Email Sending → API tokens>
+# MAILTRAP_INBOX_ID=...                     # only for sandbox host
 MAIL_FROM_ADDRESS="hello@your-domain.tld"
 MAIL_FROM_NAME="BarangayBooks"
 ```
 
-DSN schemes supported by the Symfony Mailer bridge:
+Host values:
 
-- `mailtrap+api://TOKEN@default` — transactional Email API (live)
-- `mailtrap+sandbox://TOKEN@default?inboxId=INBOX_ID` — sandbox inbox (dev)
-- `mailtrap+smtp://PASSWORD@default` — SMTP relay
+- `send.api.mailtrap.io` — transactional (default for production)
+- `sandbox.api.mailtrap.io` — sandbox inbox (dev only; `MAILTRAP_INBOX_ID` required)
+- `bulk.api.mailtrap.io` — bulk stream
 
-Get a token from Mailtrap dashboard → **Email Sending** → **Sending Domains** → your domain → **API tokens**. Works from any cloud IP. Use the Email Sending dashboard, **not** the Sandbox inbox — they're different products.
+Get a token from Mailtrap dashboard → **Email Sending** → **API tokens**. The `From` domain must be a domain you've installed in Mailtrap (otherwise Mailtrap returns 401).
 
 ### Option B — Postmark / SES / Mailgun / SendGrid
 
@@ -75,7 +76,7 @@ Standard SMTP. Set:
 MAIL_MAILER=smtp
 MAIL_HOST=<provider's SMTP host>
 MAIL_PORT=587
-MAIL_USERNAME=<provider's SMTP host>
+MAIL_USERNAME=<username or api-key>
 MAIL_PASSWORD=<api-key or password>
 MAIL_ENCRYPTION=tls
 ```

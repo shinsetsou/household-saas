@@ -45,7 +45,7 @@ services:
       - key: QUEUE_CONNECTION
         value: database
       - key: MAIL_MAILER
-        value: smtp
+        value: log    # change to `mailtrap` + add MAILTRAP_HOST / MAILTRAP_API_KEY for production (see docs/MAIL_SETUP.md)
       - key: FILESYSTEM_DISK
         value: s3
 

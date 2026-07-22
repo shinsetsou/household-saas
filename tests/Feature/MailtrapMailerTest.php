@@ -3,7 +3,8 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Mail;
-use Symfony\Component\Mailer\Bridge\Mailtrap\Transport\MailtrapApiTransport;
+use Mailtrap\Bridge\Laravel\MailtrapApiProvider;
+use Mailtrap\Bridge\Transport\MailtrapApiTransport;
 use Tests\TestCase;
 
 class MailtrapMailerTest extends TestCase
@@ -11,12 +12,13 @@ class MailtrapMailerTest extends TestCase
     public function test_mailtrap_mailer_resolves_to_api_transport(): void
     {
         if (! class_exists(MailtrapApiTransport::class)) {
-            $this->markTestSkipped('symfony/mailtrap-mailer not installed.');
+            $this->markTestSkipped('railsware/mailtrap-php not installed.');
         }
 
         config([
             'mail.default' => 'mailtrap',
-            'mail.mailers.mailtrap.dsn' => 'mailtrap+api://fake@default',
+            'services.mailtrap.host' => 'send.api.mailtrap.io',
+            'services.mailtrap.apiKey' => 'fake',
         ]);
 
         $mailer = Mail::mailer('mailtrap');
@@ -25,15 +27,17 @@ class MailtrapMailerTest extends TestCase
         $this->assertInstanceOf(MailtrapApiTransport::class, $transport);
     }
 
-    public function test_mailtrap_mailer_resolves_sandbox_to_api_transport_with_inbox(): void
+    public function test_mailtrap_mailer_resolves_sandbox_host(): void
     {
         if (! class_exists(MailtrapApiTransport::class)) {
-            $this->markTestSkipped('symfony/mailtrap-mailer not installed.');
+            $this->markTestSkipped('railsware/mailtrap-php not installed.');
         }
 
         config([
             'mail.default' => 'mailtrap',
-            'mail.mailers.mailtrap.dsn' => 'mailtrap+sandbox://fake@default?inboxId=12345',
+            'services.mailtrap.host' => 'sandbox.api.mailtrap.io',
+            'services.mailtrap.apiKey' => 'fake',
+            'services.mailtrap.inboxId' => '12345',
         ]);
 
         $transport = Mail::mailer('mailtrap')->getSymfonyTransport();
@@ -41,16 +45,10 @@ class MailtrapMailerTest extends TestCase
         $this->assertInstanceOf(MailtrapApiTransport::class, $transport);
     }
 
-    public function test_missing_dsn_throws_clear_error(): void
+    public function test_mailer_is_registered_via_package_service_provider(): void
     {
-        config([
-            'mail.default' => 'mailtrap',
-            'mail.mailers.mailtrap.dsn' => null,
-        ]);
+        $providers = $this->app->getLoadedProviders();
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('MAIL_MAILTRAP_DSN');
-
-        Mail::mailer('mailtrap');
+        $this->assertArrayHasKey(MailtrapApiProvider::class, $providers);
     }
 }

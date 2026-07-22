@@ -131,13 +131,21 @@ Visiting `/invitations/{token}` as an unauthenticated user used to bounce to `/l
 
 ### Fixed — Mailtrap transport actually wired up
 
-- **Replaced nonexistent `mailtrap/mailtrap-laravel` with `symfony/mailtrap-mailer`**. The original package name in `composer.json` (suggest) does not exist on Packagist. The correct package is the official Symfony Mailer Mailtrap bridge, which supports `mailtrap+api` (live transactional), `mailtrap+sandbox` (sandbox inbox), and `mailtrap+smtp` schemes.
-- **`symfony/mailtrap-mailer` and `symfony/http-client` are now in `composer.json` `require`** (not just `suggest`) so the `mailtrap` transport is always available. Previously the staging server 500'd on every email with `Mailer [mailtrap] is not defined.`
-- **`config/mail.php` registers the `mailtrap` mailer** with `dsn` mapped to `MAIL_MAILTRAP_DSN`.
-- **`AppServiceProvider::registerMailtrapTransport()`** registers a `Mail::extend('mailtrap', ...)` creator that hands the DSN to `Symfony\Component\Mailer\Transport::fromDsn()`. Without this, Laravel's `createSymfonyTransport` looks for a `createMailtrapTransport` method that doesn't exist and throws `Unsupported mail transport [mailtrap+api]`.
-- **`AppServiceProvider::warnOnMisconfiguredMail()`** now also detects `MAIL_MAILER=mailtrap` + missing `symfony/mailtrap-mailer` package and logs `mail.driver.mailtrap_package_missing` with the fix.
-- **`.env.production.example`, `.env.example`, `docs/MAIL_SETUP.md`, `docs/RAILWAY_DEPLOY.md`** all updated to use `MAIL_MAILTRAP_DSN=mailtrap+api://TOKEN@default` instead of the old `MAILTRAP_API_TOKEN` / `MAILTRAP_INBOX_ID` pair (which were invented for the nonexistent package).
-- **`tests/Feature/MailtrapMailerTest.php`** (new) — 3 tests verify the mailer resolves to `MailtrapApiTransport`, supports the `+sandbox` scheme, and throws a clear error if `MAIL_MAILTRAP_DSN` is missing.
+- **Replaced the symfony bridge + custom `Mail::extend` hack with the official `railsware/mailtrap-php` Laravel bridge.** The package lives at `vendor/railsware/mailtrap-php/src/Bridge/Laravel/MailtrapApiProvider.php`, is auto-discovered by Composer, and registers the `mailtrap` mailer via `Mail::extend('mailtrap', ...)` reading `MAILTRAP_HOST` / `MAILTRAP_API_KEY` / `MAILTRAP_INBOX_ID` from `config/services.php` (merged via `mergeConfigFrom`).
+- **`composer.json`** now requires `railsware/mailtrap-php`, `symfony/http-client`, `symfony/mailer`, and `nyholm/psr7` (the `psr7` adapter is what the `symfony/http-client` needs to build Mailtrap HTTP requests).
+- **`config/mail.php`** registers a `mailtrap` mailer entry with `transport: 'mailtrap'`. Without this, `MailManager::resolve` throws `Mailer [mailtrap] is not defined.`
+- **`bootstrap/providers.php`** is not modified — the package is auto-discovered.
+- **`AppServiceProvider::warnOnMisconfiguredMail()`** now detects the missing `railsware/mailtrap-php` package (via `class_exists(\Mailtrap\Bridge\Transport\MailtrapTransportFactory::class)`) and logs `mail.driver.mailtrap_package_missing`.
+- **`.env.production.example`, `.env.example`, `docs/MAIL_SETUP.md`, `docs/RAILWAY_DEPLOY.md`, `AGENTS.md`** all updated. Env vars are now:
+  ```
+  MAIL_MAILER=mailtrap
+  MAILTRAP_HOST=send.api.mailtrap.io     # or sandbox.api.mailtrap.io / bulk.api.mailtrap.io
+  MAILTRAP_API_KEY=<token from Mailtrap dashboard → Email Sending → API tokens>
+  MAILTRAP_INBOX_ID=<only for sandbox host>
+  ```
+  The old `MAIL_MAILTRAP_DSN` / `MAILTRAP_INBOX_ID` is gone — `MAILTRAP_INBOX_ID` is only required for sandbox mode.
+- **`tests/Feature/MailtrapMailerTest.php`** rewritten — 3 tests verify the mailer resolves to `MailtrapApiTransport` for both transactional and sandbox hosts, and the package's service provider is loaded.
+- **`tests/Feature/MailConfigWarningTest.php`** updated to check for the new `Mailtrap\Bridge\Transport\MailtrapTransportFactory` class.
 
 ### Added — Mailtrap Email API support
 

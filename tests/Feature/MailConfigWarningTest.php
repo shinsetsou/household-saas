@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Providers\AppServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
-use Symfony\Component\Mailer\Bridge\Mailtrap\Transport\MailtrapTransportFactory;
+use Mailtrap\Bridge\Transport\MailtrapTransportFactory;
 use Tests\TestCase;
 
 class MailConfigWarningTest extends TestCase
@@ -69,14 +69,14 @@ class MailConfigWarningTest extends TestCase
         $this->app['config']->set('mail.default', 'mailtrap');
 
         if (class_exists(MailtrapTransportFactory::class)) {
-            $this->markTestSkipped('symfony/mailtrap-mailer is installed in this environment; cannot simulate missing package.');
+            $this->markTestSkipped('railsware/mailtrap-php is installed in this environment; cannot simulate missing package.');
         }
 
         Log::shouldReceive('error')
             ->once()
             ->with('mail.driver.mailtrap_package_missing', \Mockery::on(function ($context) {
                 return ($context['mailer'] ?? null) === 'mailtrap'
-                    && str_contains($context['fix'] ?? '', 'composer require symfony/mailtrap-mailer');
+                    && str_contains($context['fix'] ?? '', 'composer require railsware/mailtrap-php');
             }));
 
         $this->invokeWarnOnMisconfiguredMail();
@@ -88,7 +88,7 @@ class MailConfigWarningTest extends TestCase
         $this->app['config']->set('mail.default', 'mailtrap');
 
         if (! class_exists(MailtrapTransportFactory::class)) {
-            $this->markTestSkipped('symfony/mailtrap-mailer is not installed; cannot test installed branch.');
+            $this->markTestSkipped('railsware/mailtrap-php is not installed; cannot test installed branch.');
         }
 
         Log::shouldReceive('error')->never();
