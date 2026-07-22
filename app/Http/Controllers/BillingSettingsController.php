@@ -11,12 +11,12 @@ use Illuminate\View\View;
 
 class BillingSettingsController extends Controller
 {
-    public function __construct(protected BillingService $billing)
-    {
-    }
+    public function __construct(protected BillingService $billing) {}
 
     public function show(Organization $organization): View
     {
+        $this->billing->ensurePlansExist();
+
         $plans = Plan::where('is_active', true)->orderBy('sort_order')->get();
 
         return view('organizations.settings.billing', [

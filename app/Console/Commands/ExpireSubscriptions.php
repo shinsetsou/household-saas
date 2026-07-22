@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\AuditLog;
+use App\Models\Organization;
 use App\Models\Subscription;
 use App\Services\Billing\BillingService;
 use Illuminate\Console\Command;
@@ -26,19 +27,20 @@ class ExpireSubscriptions extends Command
                 ->where('canceled_at', '<=', $now)
                 ->count();
             $this->line("Would finalize {$pending} subscription(s).");
+
             return self::SUCCESS;
         }
 
         $finalized = 0;
 
-Subscription::query()
+        Subscription::query()
             ->whereNotNull('canceled_at')
             ->where('canceled_at', '<=', $now)
-            ->chunkById(100, function ($subs) use (&$finalized) {
+            ->chunkById(100, function ($subs) use (&$finalized, $now) {
                 foreach ($subs as $sub) {
                     $sub->update(['status' => Subscription::STATUS_CANCELED]);
                     $sub->organization->update([
-                        'subscription_status' => \App\Models\Organization::SUBSCRIPTION_CANCELED,
+                        'subscription_status' => Organization::SUBSCRIPTION_CANCELED,
                         'subscription_ends_at' => $now,
                     ]);
 
@@ -55,6 +57,7 @@ Subscription::query()
             });
 
         $this->info("Finalized {$finalized} subscription(s).");
+
         return self::SUCCESS;
     }
 }

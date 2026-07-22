@@ -13,9 +13,7 @@ use Illuminate\Support\Str;
 
 class BillingService
 {
-    public function __construct(protected PayMongoClient $paymongo)
-    {
-    }
+    public function __construct(protected PayMongoClient $paymongo) {}
 
     public function startCheckout(Organization $organization, Plan $plan): array
     {
@@ -89,7 +87,7 @@ class BillingService
             return;
         }
 
-        DB::transaction(function () use ($organization, $plan, $payload, $paymentId) {
+        DB::transaction(function () use ($organization, $plan, $payload, $paymentId, $attributes) {
             $payment = Payment::where('organization_id', $organization->id)
                 ->where('paymongo_payment_id', $paymentId)
                 ->first();
@@ -249,6 +247,17 @@ class BillingService
             'current_period_start' => Carbon::now(),
             'current_period_end' => Carbon::now()->addDays($trialDays),
         ]);
+    }
+
+    public function ensurePlansExist(): bool
+    {
+        if (Plan::query()->where('is_active', true)->exists()) {
+            return false;
+        }
+
+        $this->seedDefaultPlans();
+
+        return true;
     }
 
     public function seedDefaultPlans(): void

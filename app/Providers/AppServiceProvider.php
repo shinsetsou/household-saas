@@ -106,7 +106,7 @@ class AppServiceProvider extends ServiceProvider
                 return;
             }
 
-            app(BillingService::class)->seedDefaultPlans();
+            app(BillingService::class)->ensurePlansExist();
         } catch (\Throwable $e) {
             // Boot-time seed must never break the request cycle. The next
             // request will retry.
