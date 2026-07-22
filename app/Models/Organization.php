@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\OrganizationRole;
+use Carbon\Carbon;
 use Cviebrock\EloquentSluggable\Sluggable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -15,9 +16,13 @@ class Organization extends Model
     use HasFactory, Sluggable;
 
     public const SUBSCRIPTION_TRIALING = 'trialing';
+
     public const SUBSCRIPTION_ACTIVE = 'active';
+
     public const SUBSCRIPTION_PAST_DUE = 'past_due';
+
     public const SUBSCRIPTION_CANCELED = 'canceled';
+
     public const SUBSCRIPTION_UNPAID = 'unpaid';
 
     /**
@@ -151,7 +156,7 @@ class Organization extends Model
         return (bool) $this->subscription?->isCancelAtPeriodEnd();
     }
 
-    public function currentPeriodEndsAt(): ?\Carbon\Carbon
+    public function currentPeriodEndsAt(): ?Carbon
     {
         return $this->subscription?->canceled_at ?? $this->subscription?->current_period_end;
     }

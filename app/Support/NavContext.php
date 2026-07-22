@@ -23,8 +23,7 @@ class NavContext
         public bool $isAdmin,
         public bool $canVerify,
         public string $userInitials,
-    ) {
-    }
+    ) {}
 
     public static function build(?Organization $organization, ?User $user): self
     {

@@ -1,5 +1,10 @@
 <?php
 
+use App\Support\SentryPiiScrubber;
+use Illuminate\Auth\AuthenticationException;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+
 return [
 
     'dsn' => env('SENTRY_LARAVEL_DSN'),
@@ -35,7 +40,7 @@ return [
 
     'send_default_pii' => false,
 
-    'scrubber' => \App\Support\SentryPiiScrubber::class,
+    'scrubber' => SentryPiiScrubber::class,
 
     /*
     |--------------------------------------------------------------------------
@@ -45,9 +50,9 @@ return [
     */
 
     'ignore_exceptions' => [
-        \Illuminate\Auth\AuthenticationException::class,
-        \Illuminate\Validation\ValidationException::class,
-        \Symfony\Component\HttpKernel\Exception\HttpException::class,
+        AuthenticationException::class,
+        ValidationException::class,
+        HttpException::class,
     ],
 
     /*

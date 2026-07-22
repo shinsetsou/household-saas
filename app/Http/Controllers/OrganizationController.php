@@ -4,6 +4,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Contribution;
 use App\Models\Organization;
 use App\Services\DelinquencyService;
 use Illuminate\Http\Request;
@@ -61,7 +62,7 @@ class OrganizationController extends Controller
         $trendMax = max($monthlyTrend->pluck('total')->max() ?: 1, 1);
 
         // Recent activity feed (contributions + expenses merged, last 6).
-        $recentContributions = \App\Models\Contribution::forOrganization($organization)
+        $recentContributions = Contribution::forOrganization($organization)
             ->with('household')
             ->latest('created_at')
             ->limit(6)

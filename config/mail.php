@@ -37,6 +37,11 @@ return [
 
     'mailers' => [
 
+        'mailtrap' => [
+            'transport' => 'mailtrap',
+            'dsn' => env('MAIL_MAILTRAP_DSN'),
+        ],
+
         'smtp' => [
             'transport' => 'smtp',
             'url' => env('MAIL_URL'),

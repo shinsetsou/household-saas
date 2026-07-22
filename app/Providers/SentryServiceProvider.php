@@ -4,8 +4,8 @@ namespace App\Providers;
 
 use App\Support\SentryPiiScrubber;
 use Illuminate\Support\ServiceProvider;
-use Sentry\Event as SentryEvent;
-use Sentry\EventHint;
+use Sentry\Sentry;
+use Sentry\State\Hub;
 
 class SentryServiceProvider extends ServiceProvider
 {
@@ -16,7 +16,7 @@ class SentryServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        if (! class_exists(\Sentry\Sentry::class)) {
+        if (! class_exists(Sentry::class)) {
             return;
         }
 
@@ -25,7 +25,7 @@ class SentryServiceProvider extends ServiceProvider
             return;
         }
 
-        \Sentry\State\Hub::getCurrent()
+        Hub::getCurrent()
             ->getClient()
             ?->getEventFactory()
             ?->registerProcessor($this->app->make(SentryPiiScrubber::class));

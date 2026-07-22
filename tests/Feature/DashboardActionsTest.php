@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Contribution;
+use App\Models\Expense;
 use App\Models\Household;
 use App\Models\Organization;
 use App\Models\User;
@@ -94,7 +95,7 @@ class DashboardActionsTest extends TestCase
             'amount' => 500,
             'verification_status' => 'verified',
         ]);
-        \App\Models\Expense::create([
+        Expense::create([
             'organization_id' => $org->id,
             'amount' => 120,
             'description' => 'Hall light bulb',

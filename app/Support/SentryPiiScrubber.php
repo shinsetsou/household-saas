@@ -102,6 +102,7 @@ class SentryPiiScrubber
         foreach ($data as $key => $value) {
             if (is_string($key) && $this->isBlockedKey($key)) {
                 $out[$key] = '[Filtered]';
+
                 continue;
             }
 

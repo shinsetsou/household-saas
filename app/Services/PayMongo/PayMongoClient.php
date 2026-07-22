@@ -11,8 +11,7 @@ class PayMongoClient
     public function __construct(
         protected string $secretKey,
         protected string $baseUrl,
-    ) {
-    }
+    ) {}
 
     public static function make(): self
     {

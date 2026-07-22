@@ -7,6 +7,7 @@ use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Billing\BillingService;
 use App\Services\OnboardingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -84,14 +85,14 @@ class OnboardingServiceTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $stubBilling = $this->getMockBuilder(\App\Services\Billing\BillingService::class)
+        $stubBilling = $this->getMockBuilder(BillingService::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['startTrial'])
             ->getMock();
         $stubBilling->method('startTrial')
             ->willThrowException(new \RuntimeException('Subscription insert failed'));
 
-        $this->app->instance(\App\Services\Billing\BillingService::class, $stubBilling);
+        $this->app->instance(BillingService::class, $stubBilling);
 
         $service = $this->app->make(OnboardingService::class);
 

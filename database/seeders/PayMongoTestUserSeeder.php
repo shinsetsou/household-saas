@@ -10,15 +10,31 @@ use App\Models\User;
 use App\Services\Billing\BillingService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class PayMongoTestUserSeeder extends Seeder
 {
     public function run(): void
     {
+        foreach (['plans', 'organizations', 'users', 'subscriptions'] as $table) {
+            if (! Schema::hasTable($table)) {
+                $this->command->error("Missing table `{$table}`. Run `php artisan migrate` before seeding.");
+                $this->command->error('Aborting PayMongoTestUserSeeder — required schema is incomplete.');
+
+                return;
+            }
+        }
+
         app(BillingService::class)->ensurePlansExist();
 
-        $community = Plan::where('slug', 'community')->firstOrFail();
+        $community = Plan::where('slug', 'community')->first();
+        if (! $community) {
+            $this->command->error('Community plan missing after seed. Check `BillingService::seedDefaultPlans()` and the `plans` table.');
+            $this->command->error('Aborting PayMongoTestUserSeeder.');
+
+            return;
+        }
 
         $user = User::updateOrCreate(
             ['email' => 'paymongo-test@example.com'],

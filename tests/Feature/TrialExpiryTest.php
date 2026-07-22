@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Enums\OrganizationRole;
 use App\Mail\TrialEndingMail;
 use App\Mail\TrialExpiredMail;
+use App\Models\Household;
 use App\Models\Organization;
 use App\Models\Plan;
 use App\Models\User;
@@ -19,7 +20,9 @@ class TrialExpiryTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected Organization $organization;
+
     protected Plan $community;
 
     protected function setUp(): void
@@ -140,7 +143,7 @@ class TrialExpiryTest extends TestCase
 
     public function test_expired_org_blocks_writes(): void
     {
-        $household = \App\Models\Household::create([
+        $household = Household::create([
             'organization_id' => $this->organization->id,
             'block' => 1,
             'lot' => 1,
@@ -180,7 +183,7 @@ class TrialExpiryTest extends TestCase
     public function test_expired_org_allows_billing_writes(): void
     {
         Http::fake([
-            'api.paymongo.com/v1/checkout_sessions' => \Illuminate\Support\Facades\Http::response([
+            'api.paymongo.com/v1/checkout_sessions' => Http::response([
                 'data' => ['id' => 'cs_x', 'attributes' => ['checkout_url' => 'https://x.test']],
             ]),
         ]);

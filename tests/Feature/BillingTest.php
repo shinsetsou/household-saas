@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Household;
 use App\Models\Organization;
 use App\Models\Payment;
 use App\Models\Plan;
@@ -16,9 +17,13 @@ class BillingTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected Organization $organization;
+
     protected Plan $community;
+
     protected Plan $barangay;
+
     protected Plan $city;
 
     protected function setUp(): void
@@ -468,9 +473,9 @@ class BillingTest extends TestCase
             'subscription_status' => Organization::SUBSCRIPTION_ACTIVE,
         ]);
 
-        \App\Models\Household::create(['organization_id' => $this->organization->id, 'block' => 1, 'lot' => 1, 'name' => 'House 1']);
+        Household::create(['organization_id' => $this->organization->id, 'block' => 1, 'lot' => 1, 'name' => 'House 1']);
         for ($i = 2; $i <= 50; $i++) {
-            \App\Models\Household::create(['organization_id' => $this->organization->id, 'block' => 1, 'lot' => $i, 'name' => 'House '.$i]);
+            Household::create(['organization_id' => $this->organization->id, 'block' => 1, 'lot' => $i, 'name' => 'House '.$i]);
         }
 
         $this->actingAs($this->admin)
@@ -487,7 +492,7 @@ class BillingTest extends TestCase
         ]);
 
         for ($i = 1; $i <= 60; $i++) {
-            \App\Models\Household::create(['organization_id' => $this->organization->id, 'block' => 1, 'lot' => $i, 'name' => 'House '.$i]);
+            Household::create(['organization_id' => $this->organization->id, 'block' => 1, 'lot' => $i, 'name' => 'House '.$i]);
         }
 
         $this->assertFalse($this->organization->fresh()->hasReachedHouseholdLimit());

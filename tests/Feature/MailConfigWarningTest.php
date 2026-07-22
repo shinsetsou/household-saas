@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Providers\AppServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\Mailer\Bridge\Mailtrap\Transport\MailtrapTransportFactory;
 use Tests\TestCase;
 
 class MailConfigWarningTest extends TestCase
@@ -56,6 +57,39 @@ class MailConfigWarningTest extends TestCase
         $this->setEnvironment('production');
         $this->app['config']->set('mail.default', 'smtp');
         $this->app['config']->set('mail.mailers.smtp.host', 'smtp.postmarkapp.com');
+
+        Log::shouldReceive('error')->never();
+
+        $this->invokeWarnOnMisconfiguredMail();
+    }
+
+    public function test_warns_when_mailtrap_mailer_selected_but_package_missing(): void
+    {
+        $this->setEnvironment('production');
+        $this->app['config']->set('mail.default', 'mailtrap');
+
+        if (class_exists(MailtrapTransportFactory::class)) {
+            $this->markTestSkipped('symfony/mailtrap-mailer is installed in this environment; cannot simulate missing package.');
+        }
+
+        Log::shouldReceive('error')
+            ->once()
+            ->with('mail.driver.mailtrap_package_missing', \Mockery::on(function ($context) {
+                return ($context['mailer'] ?? null) === 'mailtrap'
+                    && str_contains($context['fix'] ?? '', 'composer require symfony/mailtrap-mailer');
+            }));
+
+        $this->invokeWarnOnMisconfiguredMail();
+    }
+
+    public function test_does_not_warn_when_mailtrap_package_installed(): void
+    {
+        $this->setEnvironment('production');
+        $this->app['config']->set('mail.default', 'mailtrap');
+
+        if (! class_exists(MailtrapTransportFactory::class)) {
+            $this->markTestSkipped('symfony/mailtrap-mailer is not installed; cannot test installed branch.');
+        }
 
         Log::shouldReceive('error')->never();
 

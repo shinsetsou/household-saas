@@ -47,22 +47,25 @@ The app also **warns at boot** when it detects this misconfiguration in producti
 
 Use the Mailtrap transactional Email API. Works from any cloud IP because it speaks HTTPS, not SMTP.
 
-```bash
-# One-time, locally:
-composer require mailtrap/mailtrap-laravel
-```
+`symfony/mailtrap-mailer` is already in `composer.json` (pulled in via `composer install`), so the `mailtrap` transport is always registered. No extra `composer require` step.
 
-Then in production env:
+In production env, set:
 
 ```bash
 MAIL_MAILER=mailtrap
-MAILTRAP_API_TOKEN=<from Mailtrap dashboard → Email Sending → API tokens>
-MAILTRAP_INBOX_ID=<default inbox id>
+# Live transactional API:
+MAIL_MAILTRAP_DSN=mailtrap+api://YOUR_TOKEN@default
 MAIL_FROM_ADDRESS="hello@your-domain.tld"
 MAIL_FROM_NAME="BarangayBooks"
 ```
 
-The package registers `mailtrap` as a mail transport. No SMTP host/port/credentials needed. Works from cloud IPs. Use the Email Sending dashboard, **not** the Sandbox inbox — they're different products.
+DSN schemes supported by the Symfony Mailer bridge:
+
+- `mailtrap+api://TOKEN@default` — transactional Email API (live)
+- `mailtrap+sandbox://TOKEN@default?inboxId=INBOX_ID` — sandbox inbox (dev)
+- `mailtrap+smtp://PASSWORD@default` — SMTP relay
+
+Get a token from Mailtrap dashboard → **Email Sending** → **Sending Domains** → your domain → **API tokens**. Works from any cloud IP. Use the Email Sending dashboard, **not** the Sandbox inbox — they're different products.
 
 ### Option B — Postmark / SES / Mailgun / SendGrid
 

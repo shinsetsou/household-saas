@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\DB;
 
 class OnboardingService
 {
-    public function __construct(protected BillingService $billing)
-    {
-    }
+    public function __construct(protected BillingService $billing) {}
 
     /**
      * Create a new organization for the given user, attach the user as its

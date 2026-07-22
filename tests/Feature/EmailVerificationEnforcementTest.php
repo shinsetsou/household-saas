@@ -6,8 +6,8 @@ use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
 
@@ -17,9 +17,9 @@ class EmailVerificationEnforcementTest extends TestCase
 
     public function test_user_model_implements_must_verify_email(): void
     {
-        $user = new User();
+        $user = new User;
 
-        $this->assertInstanceOf(\Illuminate\Contracts\Auth\MustVerifyEmail::class, $user);
+        $this->assertInstanceOf(MustVerifyEmail::class, $user);
     }
 
     public function test_register_event_triggers_verification_email(): void

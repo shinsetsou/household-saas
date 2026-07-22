@@ -79,15 +79,15 @@ class ContributionController extends Controller
             'households.name as household_name',
             'households.block as block',
             'households.lot as lot'
-            )
+        )
             ->join('households', 'contributions.household_id', '=', 'households.id')
             ->where('households.organization_id', $organization->id)
             ->where('contributions.verification_status', 'pending')
             ->groupBy('contributions.reference_number',
-            'contributions.household_id',
-            'households.name',
-            'households.block',
-            'households.lot'
+                'contributions.household_id',
+                'households.name',
+                'households.block',
+                'households.lot'
             )
             ->orderBy('contributions.reference_number')
             ->paginate($itemsPerPage);
@@ -190,7 +190,7 @@ class ContributionController extends Controller
         $userId = $request->user()->id;
         $isVerified = $validated['verification_status'] === 'verified';
 
-        DB::transaction(function () use ($contributions, $validated, $userId, $isVerified) {
+        DB::transaction(function () use ($contributions, $validated, $userId) {
             foreach ($contributions as $contribution) {
                 $this->applyVerification($contribution, $validated, $userId);
             }

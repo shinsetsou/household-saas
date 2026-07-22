@@ -96,7 +96,7 @@ Verify + reject routes are gated by `EnsureOrganizationRole:admin,treasurer` —
 
 ### Event Flow
 
-- `ContributionController::store` → fires `ContributionCreated` → `SendContributionAddedEmail` listener → `ContributionAdded` Mailable. Bound in `app/Providers/EventServiceProvider.php`. Mail defaults to Mailtrap; tests use `array` driver.
+- `ContributionController::store` → fires `ContributionCreated` → `SendContributionAddedEmail` listener → `ContributionAdded` Mailable. Bound in `app/Providers/EventServiceProvider.php`. Mail defaults to Mailtrap Email API (via `symfony/mailtrap-mailer` + `Mail::extend('mailtrap', ...)` registered in `AppServiceProvider::registerMailtrapTransport()`); tests use `array` driver.
 - `InvitationService::invite()` → fires `OrganizationInvitationSent` → `SendOrganizationInvitationEmail` → `OrganizationInvitationMail` (signed `/invitations/{token}` URL).
 
 ### Services Layer

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Contribution;
 use App\Models\Household;
 use App\Models\Organization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -122,7 +123,7 @@ class PublicHouseholdLookupTest extends TestCase
             'block' => 1,
             'lot' => 1,
         ]);
-        \App\Models\Contribution::factory()->create([
+        Contribution::factory()->create([
             'household_id' => $household->id,
             'verification_status' => 'verified',
             'created_at' => now()->subDays(3),

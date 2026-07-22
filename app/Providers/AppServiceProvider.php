@@ -12,9 +12,12 @@ use App\Services\PayMongo\PayMongoClient;
 use App\Support\NavContext;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Symfony\Component\Mailer\Bridge\Mailtrap\Transport\MailtrapTransportFactory;
+use Symfony\Component\Mailer\Transport;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,6 +28,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerMailtrapTransport();
+
         OrganizationInvitation::observe(OrganizationInvitationObserver::class);
 
         // Register the `emails` namespace so `<x-emails::layout>` resolves to
@@ -127,6 +132,30 @@ class AppServiceProvider extends ServiceProvider
      * Dev / local is exempted — sandbox SMTP works fine from a developer
      * machine and that's its intended use.
      */
+    /**
+     * Register a custom creator for the `mailtrap` mailer so Laravel hands
+     * the DSN straight to Symfony's Mailer, which knows about the
+     * `mailtrap+api` / `mailtrap+sandbox` / `mailtrap+smtp` schemes via
+     * the symfony/mailtrap-mailer bridge. Without this, Laravel's
+     * `createSymfonyTransport` looks for a `createMailtrapTransport` method
+     * that doesn't exist and throws "Unsupported mail transport [mailtrap]".
+     */
+    protected function registerMailtrapTransport(): void
+    {
+        if (! class_exists(Transport::class)) {
+            return;
+        }
+
+        Mail::extend('mailtrap', function (array $config) {
+            $dsn = $config['dsn'] ?? null;
+            if (! $dsn) {
+                throw new \RuntimeException('mailtrap mailer requires MAIL_MAILTRAP_DSN (e.g. mailtrap+api://TOKEN@default). See docs/MAIL_SETUP.md.');
+            }
+
+            return Transport::fromDsn($dsn);
+        });
+    }
+
     protected function warnOnMisconfiguredMail(): void
     {
         if (! app()->environment('production')) {
@@ -140,7 +169,14 @@ class AppServiceProvider extends ServiceProvider
             Log::error('mail.driver.sandbox_in_production', [
                 'mailer' => $mailer,
                 'host' => $host,
-                'fix' => 'Switch to MAIL_MAILER=mailtrap with MAILTRAP_API_TOKEN + MAILTRAP_INBOX_ID (Mailtrap Email API). See docs/MAIL_SETUP.md.',
+                'fix' => 'Switch to MAIL_MAILER=mailtrap with MAIL_MAILTRAP_DSN=mailtrap+api://TOKEN@default (Mailtrap Email API). See docs/MAIL_SETUP.md.',
+            ]);
+        }
+
+        if ($mailer === 'mailtrap' && ! class_exists(MailtrapTransportFactory::class)) {
+            Log::error('mail.driver.mailtrap_package_missing', [
+                'mailer' => $mailer,
+                'fix' => 'symfony/mailtrap-mailer is not installed. Run `composer require symfony/mailtrap-mailer` and redeploy. See docs/MAIL_SETUP.md.',
             ]);
         }
     }

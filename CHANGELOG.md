@@ -129,6 +129,16 @@ Visiting `/invitations/{token}` as an unauthenticated user used to bounce to `/l
 
 ## [Unreleased] — 2026-07-05
 
+### Fixed — Mailtrap transport actually wired up
+
+- **Replaced nonexistent `mailtrap/mailtrap-laravel` with `symfony/mailtrap-mailer`**. The original package name in `composer.json` (suggest) does not exist on Packagist. The correct package is the official Symfony Mailer Mailtrap bridge, which supports `mailtrap+api` (live transactional), `mailtrap+sandbox` (sandbox inbox), and `mailtrap+smtp` schemes.
+- **`symfony/mailtrap-mailer` and `symfony/http-client` are now in `composer.json` `require`** (not just `suggest`) so the `mailtrap` transport is always available. Previously the staging server 500'd on every email with `Mailer [mailtrap] is not defined.`
+- **`config/mail.php` registers the `mailtrap` mailer** with `dsn` mapped to `MAIL_MAILTRAP_DSN`.
+- **`AppServiceProvider::registerMailtrapTransport()`** registers a `Mail::extend('mailtrap', ...)` creator that hands the DSN to `Symfony\Component\Mailer\Transport::fromDsn()`. Without this, Laravel's `createSymfonyTransport` looks for a `createMailtrapTransport` method that doesn't exist and throws `Unsupported mail transport [mailtrap+api]`.
+- **`AppServiceProvider::warnOnMisconfiguredMail()`** now also detects `MAIL_MAILER=mailtrap` + missing `symfony/mailtrap-mailer` package and logs `mail.driver.mailtrap_package_missing` with the fix.
+- **`.env.production.example`, `.env.example`, `docs/MAIL_SETUP.md`, `docs/RAILWAY_DEPLOY.md`** all updated to use `MAIL_MAILTRAP_DSN=mailtrap+api://TOKEN@default` instead of the old `MAILTRAP_API_TOKEN` / `MAILTRAP_INBOX_ID` pair (which were invented for the nonexistent package).
+- **`tests/Feature/MailtrapMailerTest.php`** (new) — 3 tests verify the mailer resolves to `MailtrapApiTransport`, supports the `+sandbox` scheme, and throws a clear error if `MAIL_MAILTRAP_DSN` is missing.
+
 ### Added — Mailtrap Email API support
 
 - **`mailtrap/mailtrap-laravel` listed as a `suggest` in `composer.json`**. Run `composer require mailtrap/mailtrap-laravel` to enable `MAIL_MAILER=mailtrap`. App stays install-clean without it; the package is optional.

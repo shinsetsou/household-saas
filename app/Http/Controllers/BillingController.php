@@ -8,13 +8,12 @@ use App\Models\Plan;
 use App\Services\Billing\BillingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 
 class BillingController extends Controller
 {
-    public function __construct(protected BillingService $billing)
-    {
-    }
+    public function __construct(protected BillingService $billing) {}
 
     public function checkout(Request $request, Organization $organization, Plan $plan): RedirectResponse
     {
@@ -85,7 +84,7 @@ class BillingController extends Controller
             ->with('info', 'Checkout cancelled.');
     }
 
-    public function webhook(Request $request): \Illuminate\Http\Response
+    public function webhook(Request $request): Response
     {
         $payload = $request->json()->all();
         $eventType = data_get($payload, 'data.attributes.type');

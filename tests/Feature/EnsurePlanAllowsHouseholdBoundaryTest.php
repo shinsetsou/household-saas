@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\EnsurePlanAllowsHousehold;
 use App\Models\Household;
 use App\Models\Organization;
 use App\Models\Plan;
@@ -14,6 +15,7 @@ class EnsurePlanAllowsHouseholdBoundaryTest extends TestCase
     use RefreshDatabase;
 
     protected User $admin;
+
     protected Organization $organization;
 
     protected function setUp(): void
@@ -169,7 +171,7 @@ class EnsurePlanAllowsHouseholdBoundaryTest extends TestCase
     public function test_middleware_passes_through_when_route_has_no_organization(): void
     {
         Route::get('/_test/no-org', fn () => 'ok')
-            ->middleware(\App\Http\Middleware\EnsurePlanAllowsHousehold::class);
+            ->middleware(EnsurePlanAllowsHousehold::class);
 
         $this->get('/_test/no-org')->assertOk()->assertSee('ok');
     }

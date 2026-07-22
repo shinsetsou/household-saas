@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\OrganizationRole;
 use App\Mail\TrialEndingMail;
 use App\Mail\TrialExpiredMail;
 use App\Models\AuditLog;
@@ -52,6 +53,7 @@ class ExpireTrials extends Command
                     if ($dryRun) {
                         $this->line("Would expire: {$org->name} (#{$org->id})");
                         $count++;
+
                         continue;
                     }
 
@@ -100,6 +102,7 @@ class ExpireTrials extends Command
                 if ($dryRun) {
                     $this->line("Would warn T-{$days}: {$org->name} (#{$org->id})");
                     $count++;
+
                     continue;
                 }
 
@@ -125,7 +128,7 @@ class ExpireTrials extends Command
     protected function sendToAdmins(Organization $org, $mailable): void
     {
         $emails = $org->users()
-            ->wherePivot('role', \App\Enums\OrganizationRole::Admin->value)
+            ->wherePivot('role', OrganizationRole::Admin->value)
             ->pluck('users.email')
             ->all();
 

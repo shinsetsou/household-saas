@@ -6,6 +6,7 @@ use App\Models\Expense;
 use App\Models\Household;
 use App\Models\Organization;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 
 class HouseholdController extends Controller
@@ -152,7 +153,7 @@ class HouseholdController extends Controller
             'pendingCount' => $household->contributions()
                 ->where('verification_status', 'pending')
                 ->count(),
-            'lastPaidAt' => $lastPaidRaw ? \Illuminate\Support\Carbon::parse($lastPaidRaw) : null,
+            'lastPaidAt' => $lastPaidRaw ? Carbon::parse($lastPaidRaw) : null,
         ];
     }
 }

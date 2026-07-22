@@ -15,8 +15,11 @@ class TenantSafetyAuditTest extends TestCase
     use RefreshDatabase;
 
     protected User $adminA;
+
     protected User $adminB;
+
     protected Organization $orgA;
+
     protected Organization $orgB;
 
     protected function setUp(): void

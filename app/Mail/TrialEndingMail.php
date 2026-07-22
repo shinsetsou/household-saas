@@ -15,8 +15,7 @@ class TrialEndingMail extends Mailable implements ShouldQueue
     public function __construct(
         public Organization $organization,
         public int $daysRemaining,
-    ) {
-    }
+    ) {}
 
     public function build(): self
     {

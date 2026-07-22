@@ -10,7 +10,5 @@ class OrganizationInvitationSent
 {
     use Dispatchable, SerializesModels;
 
-    public function __construct(public OrganizationInvitation $invitation)
-    {
-    }
+    public function __construct(public OrganizationInvitation $invitation) {}
 }

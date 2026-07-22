@@ -9,6 +9,7 @@ use App\Models\Subscription;
 use App\Services\PayMongo\PayMongoClient;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class BillingService
@@ -251,6 +252,10 @@ class BillingService
 
     public function ensurePlansExist(): bool
     {
+        if (! Schema::hasTable('plans')) {
+            return false;
+        }
+
         if (Plan::query()->where('is_active', true)->exists()) {
             return false;
         }

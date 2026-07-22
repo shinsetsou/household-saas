@@ -111,11 +111,10 @@ QUEUE_CONNECTION=database
 # --- Mail (Mailtrap Email API — recommended; works from cloud IPs) ---
 # Sandbox SMTP (sandbox.smtp.mailtrap.io) is dev-only and unreachable from Railway.
 # See docs/MAIL_SETUP.md §"Sandbox vs Email API" for details.
-# 1. composer require mailtrap/mailtrap-laravel   (one-time, locally)
-# 2. In Railway Variables set:
+# `symfony/mailtrap-mailer` is already in composer.json (installed by `composer install`).
+# In Railway Variables set:
 MAIL_MAILER=mailtrap
-MAILTRAP_API_TOKEN=<from Mailtrap dashboard → Email Sending → API tokens>
-MAILTRAP_INBOX_ID=<default inbox id>
+MAIL_MAILTRAP_DSN=mailtrap+api://YOUR_TOKEN@default
 MAIL_FROM_ADDRESS="hello@your-domain.tld"
 MAIL_FROM_NAME="${APP_NAME}"
 

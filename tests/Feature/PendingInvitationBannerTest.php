@@ -8,6 +8,7 @@ use App\Models\OrganizationInvitation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class PendingInvitationBannerTest extends TestCase
@@ -15,6 +16,7 @@ class PendingInvitationBannerTest extends TestCase
     use RefreshDatabase;
 
     protected User $user;
+
     protected Organization $org;
 
     protected function setUp(): void
@@ -132,7 +134,7 @@ class PendingInvitationBannerTest extends TestCase
             'invited_by' => User::factory()->create()->id,
         ]);
 
-        $expectedUrl = \Illuminate\Support\Facades\URL::signedRoute('invitations.show', ['invitation' => $invitation]);
+        $expectedUrl = URL::signedRoute('invitations.show', ['invitation' => $invitation]);
 
         $this->actingAs($this->user)
             ->get(route('dashboard'))

@@ -12,9 +12,7 @@ class TrialExpiredMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
-    public function __construct(public Organization $organization)
-    {
-    }
+    public function __construct(public Organization $organization) {}
 
     public function build(): self
     {

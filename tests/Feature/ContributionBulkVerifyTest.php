@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use App\Models\AuditLog;
 use App\Models\Contribution;
 use App\Models\Household;
 use App\Models\Organization;

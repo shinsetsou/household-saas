@@ -6,8 +6,6 @@ use App\Support\SentryPiiScrubber;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use Sentry\Event;
-use Sentry\EventHint;
-use Sentry\State\Scope;
 
 /**
  * The Sentry SDK is not installed in this project's test environment, but
@@ -21,7 +19,7 @@ class SentryPiiScrubberTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->scrubber = new SentryPiiScrubber();
+        $this->scrubber = new SentryPiiScrubber;
     }
 
     protected function callProtected(string $method, array $args)

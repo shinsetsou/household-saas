@@ -10,7 +10,9 @@
         "cviebrock/eloquent-sluggable": "^11.0",
         "laravel/framework": "^11.9",
         "laravel/tinker": "^2.9",
-        "league/flysystem-aws-s3-v3": "^3.0"
+        "league/flysystem-aws-s3-v3": "^3.0",
+        "symfony/http-client": "^7.4",
+        "symfony/mailtrap-mailer": "^7.0|^8.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -56,7 +58,6 @@
         }
     },
     "suggest": {
-        "mailtrap/mailtrap-laravel": "Required for MAIL_MAILER=mailtrap (Mailtrap transactional Email API). SMTP-based MAIL_MAILER=smtp is also supported.",
         "sentry/sentry-laravel": "Required for Sentry error reporting. Set SENTRY_LARAVEL_DSN to enable."
     },
     "config": {
