@@ -16,7 +16,7 @@ class OrganizationInvitation extends Model
     public const INVITATION_TTL_DAYS = 14;
 
     protected $fillable = [
-        'organization_id', 'email', 'role', 'token',
+        'organization_id', 'email', 'role', 'token', 'verification_code',
         'invited_by', 'accepted_at', 'revoked_at', 'expires_at',
     ];
 
@@ -36,10 +36,31 @@ class OrganizationInvitation extends Model
                 $invitation->token = Str::random(48);
             }
 
+            if (! $invitation->verification_code) {
+                $invitation->verification_code = self::generateVerificationCode();
+            }
+
             if (! $invitation->expires_at) {
                 $invitation->expires_at = Carbon::now()->addDays(self::INVITATION_TTL_DAYS);
             }
         });
+    }
+
+    public static function generateVerificationCode(): string
+    {
+        do {
+            $code = str_pad((string) random_int(0, 999_999), 6, '0', STR_PAD_LEFT);
+        } while (static::where('verification_code', $code)
+            ->where('expires_at', '>', now())
+            ->exists());
+
+        return $code;
+    }
+
+    public function matchesVerificationCode(string $candidate): bool
+    {
+        return $this->verification_code !== null
+            && hash_equals($this->verification_code, $candidate);
     }
 
     public function getRouteKeyName(): string

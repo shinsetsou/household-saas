@@ -138,6 +138,7 @@ Route::prefix('/{organization:slug}')->group(function () {
 });
 
 Route::get('/invitations/{invitation}', [InvitationController::class, 'show'])->middleware('signed')->name('invitations.show');
+Route::post('/invitations/{invitation}/claim', [InvitationController::class, 'claim'])->middleware('signed')->name('invitations.claim');
 Route::post('/invitations/{invitation}/accept', [InvitationController::class, 'accept'])->middleware(['auth', 'verified', 'signed'])->name('invitations.accept');
 Route::post('/invitations/{invitation}/decline', [InvitationController::class, 'decline'])->middleware(['auth', 'verified', 'signed'])->name('invitations.decline');
 

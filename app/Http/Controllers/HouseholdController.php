@@ -8,6 +8,8 @@ use App\Models\Organization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class HouseholdController extends Controller
 {
@@ -63,7 +65,21 @@ class HouseholdController extends Controller
             'lot' => 'required|integer|min:1',
         ]);
 
-        $organization->households()->create($validated);
+        DB::transaction(function () use ($validated, $organization) {
+            $locked = Organization::whereKey($organization->id)->lockForUpdate()->first();
+
+            $limit = $locked->householdLimit();
+
+            if ($limit !== null && $locked->households()->count() >= $limit) {
+                throw ValidationException::withMessages([
+                    'name' => $locked->isOnTrial()
+                        ? "Your free trial allows up to {$limit} households. Upgrade to a paid plan to add more."
+                        : "Your current plan allows up to {$limit} households. Upgrade to add more.",
+                ]);
+            }
+
+            $locked->households()->create($validated);
+        });
 
         return redirect()->route('households.index', $organization)->with('success', 'Household created successfully.');
     }

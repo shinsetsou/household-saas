@@ -138,8 +138,7 @@
 
                         <div class="flex items-center gap-1">
                             <button type="button"
-                                    data-copy-url="{{ route('organizations.settings.invitations.link', [$organization->slug, $invitation->token]) }}"
-                                    data-token="{{ $invitation->token }}"
+                                    data-copy-url="{{ URL::temporarySignedRoute('invitations.show', $invitation->expires_at, ['invitation' => $invitation->token]) }}"
                                     onclick="copyInviteLink(this)"
                                     class="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                                     title="Copy invite link">
@@ -242,11 +241,9 @@
 
 <script>
     async function copyInviteLink(button) {
-        const url = button.dataset.copyUrl + '?_token=' + encodeURIComponent('{{ csrf_token() }}');
-        // Use the data-token directly to build the absolute URL without an extra roundtrip.
-        const absolute = window.location.origin + '/invitations/' + button.dataset.token;
+        const url = button.dataset.copyUrl;
         try {
-            await navigator.clipboard.writeText(absolute);
+            await navigator.clipboard.writeText(url);
             const original = button.querySelector('span')?.textContent ?? 'Copy link';
             button.querySelector('span').textContent = 'Copied!';
             button.classList.add('text-emerald-600');
@@ -257,7 +254,7 @@
         } catch (e) {
             // Fallback: select+copy via temporary input
             const ta = document.createElement('textarea');
-            ta.value = absolute;
+            ta.value = url;
             document.body.appendChild(ta);
             ta.select();
             try { document.execCommand('copy'); } catch (_) {}

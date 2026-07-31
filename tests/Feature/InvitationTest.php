@@ -38,6 +38,39 @@ class InvitationTest extends TestCase
         $this->organization->users()->attach($this->admin->id, ['role' => OrganizationRole::Admin->value]);
     }
 
+    protected function claimInvitation(OrganizationInvitation $invitation, string $email): void
+    {
+        $this->post(
+            URL::temporarySignedRoute(
+                'invitations.claim',
+                $invitation->expires_at,
+                ['invitation' => $invitation->token],
+            ),
+            [
+                'email' => $email,
+                'code' => $invitation->verification_code,
+            ],
+        )->assertRedirect();
+    }
+
+    protected function signedShowUrl(OrganizationInvitation $invitation): string
+    {
+        return URL::temporarySignedRoute(
+            'invitations.show',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token],
+        );
+    }
+
+    protected function signedAcceptUrl(OrganizationInvitation $invitation): string
+    {
+        return URL::temporarySignedRoute(
+            'invitations.accept',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token],
+        );
+    }
+
     public function test_admin_can_view_members_page(): void
     {
         $this->actingAs($this->admin)
@@ -144,7 +177,11 @@ class InvitationTest extends TestCase
             ]);
 
         $invitation = OrganizationInvitation::where('email', 'invitee@example.com')->first();
-        $url = URL::signedRoute('invitations.show', ['invitation' => $invitation->token]);
+        $url = URL::temporarySignedRoute(
+            'invitations.show',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token],
+        );
 
         Mail::assertSent(OrganizationInvitationMail::class, function ($mail) use ($invitation) {
             return $mail->hasTo('invitee@example.com')
@@ -163,7 +200,12 @@ class InvitationTest extends TestCase
         ]);
 
         $this->actingAs($invitee)
-            ->post(URL::signedRoute('invitations.accept', ['invitation' => $invitation->token]))
+            ->withSession([
+                'invitation.code_verified_token' => $invitation->token,
+                'invitation.code_verified_at' => now()->timestamp,
+                'invitation.intended_token' => $invitation->token,
+            ])
+            ->post($this->signedAcceptUrl($invitation))
             ->assertRedirect(route('organizations.index', $this->organization->slug));
 
         $this->assertDatabaseHas('organization_user', [
@@ -186,7 +228,7 @@ class InvitationTest extends TestCase
         ]);
 
         $this->actingAs($other)
-            ->get(route('invitations.show', $invitation->token))
+            ->get($this->signedShowUrl($invitation))
             ->assertSessionHasErrors('email');
     }
 
@@ -419,12 +461,45 @@ class InvitationTest extends TestCase
             ->assertRedirect();
 
         $invitation = OrganizationInvitation::where('email', 'endtoend@example.com')->firstOrFail();
-        $signedUrl = URL::signedRoute('invitations.show', ['invitation' => $invitation->token]);
+        $signedShowUrl = URL::temporarySignedRoute(
+            'invitations.show',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token],
+        );
+        $signedShowUrlWithCode = URL::temporarySignedRoute(
+            'invitations.show',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token, 'c' => $invitation->verification_code],
+        );
+        $signedClaimUrl = URL::temporarySignedRoute(
+            'invitations.claim',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token],
+        );
 
         $invitee = User::factory()->create(['email' => 'endtoend@example.com']);
 
+        // Step 1: opened link requires code claim.
         $this->actingAs($invitee)
-            ->get($signedUrl)
+            ->get($signedShowUrl)
+            ->assertOk()
+            ->assertSee('Confirm and continue')
+            ->assertSee('6-digit code');
+
+        // Step 2: claim with code.
+        $this->post($signedClaimUrl, [
+            'email' => 'endtoend@example.com',
+            'code' => $invitation->verification_code,
+        ])->assertRedirect(route('password.set.show'));
+
+        // Step 3: after password set, accept.
+        $this->post(route('password.set.store'), [
+            'password' => 'new-secure-pw',
+            'password_confirmation' => 'new-secure-pw',
+        ])->assertRedirect($signedShowUrlWithCode);
+
+        $this->actingAs($invitee->fresh())
+            ->get($signedShowUrlWithCode)
             ->assertOk()
             ->assertSee('Accept invitation');
     }
@@ -442,11 +517,19 @@ class InvitationTest extends TestCase
             ->assertRedirect();
 
         $invitation = OrganizationInvitation::where('email', 'newbie@example.com')->firstOrFail();
-        $signedUrl = URL::signedRoute('invitations.show', ['invitation' => $invitation->token]);
 
         Auth::logout();
 
-        $response = $this->get($signedUrl);
+        $signedClaimUrl = URL::temporarySignedRoute(
+            'invitations.claim',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token],
+        );
+
+        $response = $this->post($signedClaimUrl, [
+            'email' => 'newbie@example.com',
+            'code' => $invitation->verification_code,
+        ]);
 
         $response->assertRedirect(route('password.set.show'));
 
@@ -474,7 +557,11 @@ class InvitationTest extends TestCase
             'email_verified_at' => now(),
         ]);
 
-        $signedUrl = URL::signedRoute('invitations.show', ['invitation' => $invitation->token]);
+        $signedUrl = URL::temporarySignedRoute(
+            'invitations.show',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token, 'c' => $invitation->verification_code],
+        );
 
         $response = $this->actingAs($user)
             ->withSession(['invitation.intended_token' => $invitation->token])
@@ -483,7 +570,7 @@ class InvitationTest extends TestCase
                 'password_confirmation' => 'new-secure-pw',
             ]);
 
-        $response->assertRedirect(URL::signedRoute('invitations.show', ['invitation' => $invitation->token]));
+        $response->assertRedirect($signedUrl);
 
         $user->refresh();
         $this->assertFalse($user->force_change_password);
@@ -508,7 +595,11 @@ class InvitationTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)
-            ->withSession(['invitation.intended_token' => $invitation->token])
+            ->withSession([
+                'invitation.intended_token' => $invitation->token,
+                'invitation.code_verified_at' => now()->timestamp,
+                'invitation.code_verified_token' => $invitation->token,
+            ])
             ->post(route('password.set.store'), [
                 'password' => 'new-secure-pw',
                 'password_confirmation' => 'new-secure-pw',
@@ -567,11 +658,13 @@ class InvitationTest extends TestCase
             'invited_by' => $this->admin->id,
         ]);
 
-        $signedUrl = URL::signedRoute('invitations.show', ['invitation' => $invitation->token]);
+        $signedUrlWithCode = URL::temporarySignedRoute(
+            'invitations.show',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token, 'c' => $invitation->verification_code],
+        );
 
-        $this->actingAs($invitee)
-            ->get($signedUrl)
-            ->assertOk();
+        $this->actingAs($invitee)->get($signedUrlWithCode)->assertOk();
 
         $this->assertNotNull($invitee->fresh()->email_verified_at);
     }
@@ -591,7 +684,12 @@ class InvitationTest extends TestCase
         ]);
 
         $this->actingAs($invitee)
-            ->post(URL::signedRoute('invitations.accept', ['invitation' => $invitation->token]))
+            ->withSession([
+                'invitation.code_verified_token' => $invitation->token,
+                'invitation.code_verified_at' => now()->timestamp,
+                'invitation.intended_token' => $invitation->token,
+            ])
+            ->post($this->signedAcceptUrl($invitation))
             ->assertRedirect(route('organizations.index', $this->organization->slug));
 
         $this->assertDatabaseHas('organization_user', [
@@ -651,9 +749,13 @@ class InvitationTest extends TestCase
             'invited_by' => $this->admin->id,
         ]);
 
-        $signedUrl = URL::signedRoute('invitations.show', ['invitation' => $invitation->token]);
+        $signedUrlWithCode = URL::temporarySignedRoute(
+            'invitations.show',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token, 'c' => $invitation->verification_code],
+        );
 
-        $response = $this->actingAs($invitee)->get($signedUrl);
+        $response = $this->actingAs($invitee)->get($signedUrlWithCode);
 
         $response->assertOk();
         $response->assertSee('Decline this invitation');
@@ -765,11 +867,19 @@ class InvitationTest extends TestCase
             ->assertRedirect();
 
         $invitation = OrganizationInvitation::where('email', 'origin@example.com')->firstOrFail();
-        $signedUrl = URL::signedRoute('invitations.show', ['invitation' => $invitation->token]);
 
         Auth::logout();
 
-        $this->get($signedUrl)->assertRedirect(route('password.set.show'));
+        $signedClaimUrl = URL::temporarySignedRoute(
+            'invitations.claim',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token],
+        );
+
+        $this->post($signedClaimUrl, [
+            'email' => 'origin@example.com',
+            'code' => $invitation->verification_code,
+        ])->assertRedirect(route('password.set.show'));
 
         $newUser = User::where('email', 'origin@example.com')->firstOrFail();
         $this->assertSame($this->organization->slug, $newUser->invitation_origin_org_slug);
@@ -866,7 +976,12 @@ class InvitationTest extends TestCase
         ]);
 
         $this->actingAs($invitee)
-            ->post(URL::signedRoute('invitations.accept', ['invitation' => $invitation->token]))
+            ->withSession([
+                'invitation.code_verified_token' => $invitation->token,
+                'invitation.code_verified_at' => now()->timestamp,
+                'invitation.intended_token' => $invitation->token,
+            ])
+            ->post($this->signedAcceptUrl($invitation))
             ->assertRedirect(route('organizations.index', $this->organization->slug));
 
         $invitee->refresh();
@@ -911,14 +1026,18 @@ class InvitationTest extends TestCase
             'invited_by' => $this->admin->id,
         ]);
 
-        $signedAcceptUrl = URL::signedRoute('invitations.accept', ['invitation' => $invitation->token]);
-        $signedShowUrl = URL::signedRoute('invitations.show', ['invitation' => $invitation->token]);
+        $signedShowUrlWithCode = URL::temporarySignedRoute(
+            'invitations.show',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token, 'c' => $invitation->verification_code],
+        );
 
         $response = $this->actingAs($invitee)
-            ->get($signedShowUrl);
+            ->get($signedShowUrlWithCode);
 
         $response->assertOk();
-        $response->assertSee('action="'.htmlspecialchars($signedAcceptUrl, ENT_QUOTES).'"', false);
+        $response->assertSee('action="http://localhost/invitations/'.$invitation->token.'/accept', false);
+        $response->assertSee('signature=', false);
     }
 
     public function test_decline_form_action_is_signed_url(): void
@@ -932,13 +1051,252 @@ class InvitationTest extends TestCase
             'invited_by' => $this->admin->id,
         ]);
 
-        $signedDeclineUrl = URL::signedRoute('invitations.decline', ['invitation' => $invitation->token]);
-        $signedShowUrl = URL::signedRoute('invitations.show', ['invitation' => $invitation->token]);
+        $signedShowUrlWithCode = URL::temporarySignedRoute(
+            'invitations.show',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token, 'c' => $invitation->verification_code],
+        );
 
         $response = $this->actingAs($invitee)
-            ->get($signedShowUrl);
+            ->get($signedShowUrlWithCode);
 
         $response->assertOk();
-        $response->assertSee('action="'.htmlspecialchars($signedDeclineUrl, ENT_QUOTES).'"', false);
+        $response->assertSee('action="http://localhost/invitations/'.$invitation->token.'/decline', false);
+        $response->assertSee('signature=', false);
+    }
+
+    public function test_signed_invite_url_requires_verification_code(): void
+    {
+        $invitee = User::factory()->create(['email' => 'codetest@example.com']);
+
+        $invitation = OrganizationInvitation::create([
+            'organization_id' => $this->organization->id,
+            'email' => 'codetest@example.com',
+            'role' => OrganizationRole::Viewer->value,
+            'invited_by' => $this->admin->id,
+        ]);
+
+        $signedShowUrl = URL::temporarySignedRoute(
+            'invitations.show',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token],
+        );
+
+        // Without the code, the show route shows the claim form (the Accept form is gated behind it).
+        $this->actingAs($invitee)
+            ->get($signedShowUrl)
+            ->assertOk()
+            ->assertSee('Confirm and continue')
+            ->assertDontSee('Accept invitation');
+
+        // With the code, the show route reveals the Accept form.
+        $signedShowUrlWithCode = URL::temporarySignedRoute(
+            'invitations.show',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token, 'c' => $invitation->verification_code],
+        );
+
+        $this->actingAs($invitee)
+            ->get($signedShowUrlWithCode)
+            ->assertOk()
+            ->assertSee('Accept invitation');
+    }
+
+    public function test_claim_route_rejects_wrong_code(): void
+    {
+        $invitation = OrganizationInvitation::create([
+            'organization_id' => $this->organization->id,
+            'email' => 'wrongcode@example.com',
+            'role' => OrganizationRole::Viewer->value,
+            'invited_by' => $this->admin->id,
+        ]);
+
+        $signedClaimUrl = URL::temporarySignedRoute(
+            'invitations.claim',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token],
+        );
+
+        $this->post($signedClaimUrl, [
+            'email' => 'wrongcode@example.com',
+            'code' => '000000',
+        ])->assertSessionHasErrors('code');
+
+        $this->assertDatabaseMissing('users', ['email' => 'wrongcode@example.com']);
+    }
+
+    public function test_claim_route_rejects_wrong_email(): void
+    {
+        $invitation = OrganizationInvitation::create([
+            'organization_id' => $this->organization->id,
+            'email' => 'realemail@example.com',
+            'role' => OrganizationRole::Viewer->value,
+            'invited_by' => $this->admin->id,
+        ]);
+
+        $signedClaimUrl = URL::temporarySignedRoute(
+            'invitations.claim',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token],
+        );
+
+        $this->post($signedClaimUrl, [
+            'email' => 'attacker@example.com',
+            'code' => $invitation->verification_code,
+        ])->assertSessionHasErrors('code');
+    }
+
+    public function test_claim_route_throttles_repeated_wrong_codes(): void
+    {
+        $invitation = OrganizationInvitation::create([
+            'organization_id' => $this->organization->id,
+            'email' => 'throttle@example.com',
+            'role' => OrganizationRole::Viewer->value,
+            'invited_by' => $this->admin->id,
+        ]);
+
+        $signedClaimUrl = URL::temporarySignedRoute(
+            'invitations.claim',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token],
+        );
+
+        for ($i = 0; $i < 10; $i++) {
+            $this->post($signedClaimUrl, [
+                'email' => 'throttle@example.com',
+                'code' => '000000',
+            ])->assertSessionHasErrors('code');
+        }
+
+        $this->post($signedClaimUrl, [
+            'email' => 'throttle@example.com',
+            'code' => $invitation->verification_code,
+        ])->assertSessionHasErrors('code');
+    }
+
+    public function test_claim_route_rate_limiter_resets_on_success(): void
+    {
+        $invitation = OrganizationInvitation::create([
+            'organization_id' => $this->organization->id,
+            'email' => 'resetlimit@example.com',
+            'role' => OrganizationRole::Viewer->value,
+            'invited_by' => $this->admin->id,
+        ]);
+
+        $signedClaimUrl = URL::temporarySignedRoute(
+            'invitations.claim',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token],
+        );
+
+        $this->post($signedClaimUrl, [
+            'email' => 'resetlimit@example.com',
+            'code' => '999999',
+        ])->assertSessionHasErrors('code');
+
+        $this->post($signedClaimUrl, [
+            'email' => 'resetlimit@example.com',
+            'code' => $invitation->verification_code,
+        ])->assertRedirect();
+    }
+
+    public function test_signed_url_must_not_be_tampered_with(): void
+    {
+        $invitation = OrganizationInvitation::create([
+            'organization_id' => $this->organization->id,
+            'email' => 'signed-check@example.com',
+            'role' => OrganizationRole::Viewer->value,
+            'invited_by' => $this->admin->id,
+        ]);
+
+        $valid = URL::temporarySignedRoute(
+            'invitations.show',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token],
+        );
+
+        $tampered = preg_replace('/signature=[a-f0-9]+/', 'signature=invalid', $valid);
+
+        $this->get($tampered)->assertStatus(403);
+    }
+
+    public function test_signed_url_expires_after_expiration_window(): void
+    {
+        $invitation = OrganizationInvitation::create([
+            'organization_id' => $this->organization->id,
+            'email' => 'expiredurl@example.com',
+            'role' => OrganizationRole::Viewer->value,
+            'invited_by' => $this->admin->id,
+        ]);
+
+        $past = URL::temporarySignedRoute(
+            'invitations.show',
+            now()->subMinute(),
+            ['invitation' => $invitation->token],
+        );
+
+        $this->get($past)->assertStatus(403);
+    }
+
+    public function test_resend_rotates_the_verification_code(): void
+    {
+        Event::fake([OrganizationInvitationSent::class]);
+        Mail::fake();
+
+        $invitation = OrganizationInvitation::create([
+            'organization_id' => $this->organization->id,
+            'email' => 'rotatecode@example.com',
+            'role' => OrganizationRole::Viewer->value,
+            'invited_by' => $this->admin->id,
+        ]);
+
+        $oldCode = $invitation->verification_code;
+
+        $this->actingAs($this->admin)
+            ->post(route('organizations.settings.invitations.resend', [$this->organization->slug, $invitation->token]))
+            ->assertRedirect();
+
+        $this->assertNotSame($oldCode, $invitation->fresh()->verification_code);
+    }
+
+    public function test_invitation_can_only_be_accepted_within_fifteen_minutes_of_code_verification(): void
+    {
+        $invitee = User::factory()->create(['email' => 'window@example.com']);
+
+        $invitation = OrganizationInvitation::create([
+            'organization_id' => $this->organization->id,
+            'email' => 'window@example.com',
+            'role' => OrganizationRole::Viewer->value,
+            'invited_by' => $this->admin->id,
+        ]);
+
+        // Code verified 30 minutes ago — past the 15-minute window.
+        $this->actingAs($invitee)
+            ->withSession([
+                'invitation.code_verified_token' => $invitation->token,
+                'invitation.code_verified_at' => now()->subMinutes(30)->timestamp,
+                'invitation.intended_token' => $invitation->token,
+            ])
+            ->post($this->signedAcceptUrl($invitation))
+            ->assertSessionHasErrors('email');
+    }
+
+    public function test_accept_route_rejects_when_code_was_never_verified(): void
+    {
+        $invitee = User::factory()->create(['email' => 'neververified@example.com']);
+
+        $invitation = OrganizationInvitation::create([
+            'organization_id' => $this->organization->id,
+            'email' => 'neververified@example.com',
+            'role' => OrganizationRole::Viewer->value,
+            'invited_by' => $this->admin->id,
+        ]);
+
+        $this->actingAs($invitee)
+            ->withSession([
+                'invitation.intended_token' => $invitation->token,
+            ])
+            ->post($this->signedAcceptUrl($invitation))
+            ->assertSessionHasErrors('email');
     }
 }

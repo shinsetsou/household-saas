@@ -22,7 +22,11 @@ class PendingInvitationsController extends Controller
                 return [
                     'invitation' => $invitation,
                     'role' => $invitation->role(),
-                    'signed_url' => URL::signedRoute('invitations.show', ['invitation' => $invitation->token]),
+                    'signed_url' => URL::temporarySignedRoute(
+                        'invitations.show',
+                        $invitation->expires_at,
+                        ['invitation' => $invitation->token],
+                    ),
                     'inviter' => $invitation->inviter,
                     'organization' => $invitation->organization,
                     'expires_in_days' => max(0, (int) now()->diffInDays($invitation->expires_at, false)),

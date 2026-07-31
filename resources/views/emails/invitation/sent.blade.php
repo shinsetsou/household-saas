@@ -15,9 +15,25 @@
 
     <p style="margin:24px 0;">
         <a href="{{ $acceptUrl }}" style="display:inline-block;padding:10px 18px;background:#6366f1;color:#ffffff;text-decoration:none;border-radius:12px;font-weight:600;font-size:14px;">
-            Accept invitation
+            Open invitation
         </a>
     </p>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:24px 0;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc;">
+        <tr>
+            <td style="padding:16px 20px;">
+                <p style="margin:0 0 6px;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#64748b;font-weight:600;">
+                    Your 6-digit confirmation code
+                </p>
+                <p style="margin:0;font-family:Menlo,Consolas,monospace;font-size:28px;font-weight:700;letter-spacing:0.4em;color:#0f172a;">
+                    {{ $verificationCode }}
+                </p>
+                <p style="margin:8px 0 0;font-size:12px;color:#64748b;">
+                    Enter this on the invitation page (along with the email it was sent to) to confirm the invite. The code alone is not enough — you also need the link.
+                </p>
+            </td>
+        </tr>
+    </table>
 
     <p style="margin:16px 0 4px;font-size:13px;color:#64748b;">
         This invitation expires on {{ $invitation->expires_at->format('F j, Y') }}.

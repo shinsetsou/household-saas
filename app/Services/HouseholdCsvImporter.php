@@ -6,6 +6,7 @@ use App\Models\Household;
 use App\Models\Organization;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class HouseholdCsvImporter
 {
@@ -44,18 +45,40 @@ class HouseholdCsvImporter
             return new HouseholdCsvImportResult(0, $errors);
         }
 
-        DB::transaction(function () use ($organization, $rows): void {
-            foreach ($rows as $row) {
+        $imported = 0;
+
+        DB::transaction(function () use ($organization, $rows, &$imported) {
+            $locked = Organization::whereKey($organization->id)->lockForUpdate()->first();
+
+            $limit = $locked->householdLimit();
+            $existing = $locked->households()->count();
+            $room = $limit === null ? count($rows) : max(0, $limit - $existing);
+
+            if ($room <= 0) {
+                $message = $locked->isOnTrial()
+                    ? "Your free trial allows up to {$limit} households. Upgrade to a paid plan to add more."
+                    : "Your current plan allows up to {$limit} households. Upgrade to add more.";
+
+                throw ValidationException::withMessages([
+                    'csv' => $message,
+                ]);
+            }
+
+            $remaining = array_slice($rows, 0, $room);
+
+            foreach ($remaining as $row) {
                 Household::create([
-                    'organization_id' => $organization->id,
+                    'organization_id' => $locked->id,
                     'name' => $row['name'],
                     'block' => (int) $row['block'],
                     'lot' => (int) $row['lot'],
                 ]);
             }
+
+            $imported = count($remaining);
         });
 
-        return new HouseholdCsvImportResult(count($rows));
+        return new HouseholdCsvImportResult($imported);
     }
 
     private function parse(UploadedFile $file): array

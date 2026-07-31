@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\OrganizationInvitation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -33,7 +34,24 @@ class PasswordSetController extends Controller
         $request->session()->regenerate();
 
         if ($intendedToken = $request->session()->pull('invitation.intended_token')) {
-            return redirect(URL::signedRoute('invitations.show', ['invitation' => $intendedToken]));
+            $invitation = OrganizationInvitation::where('token', $intendedToken)->first();
+
+            $request->session()->put('invitation.code_verified_token', $intendedToken);
+            $request->session()->put('invitation.code_verified_at', now()->timestamp);
+
+            $signedUrl = $invitation
+                ? URL::temporarySignedRoute(
+                    'invitations.show',
+                    $invitation->expires_at,
+                    ['invitation' => $intendedToken, 'c' => $invitation->verification_code],
+                )
+                : URL::temporarySignedRoute(
+                    'invitations.show',
+                    now()->addHour(),
+                    ['invitation' => $intendedToken],
+                );
+
+            return redirect($signedUrl);
         }
 
         return redirect()->intended(route('dashboard', absolute: false));

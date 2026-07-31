@@ -44,6 +44,7 @@ class InvitationService
                 'email' => $email,
                 'role' => $role->value,
                 'invited_by' => $inviter->id,
+                'verification_code' => OrganizationInvitation::generateVerificationCode(),
             ]);
 
             AuditLog::record(
@@ -103,6 +104,7 @@ class InvitationService
 
         $invitation->update([
             'expires_at' => now()->addDays(OrganizationInvitation::INVITATION_TTL_DAYS),
+            'verification_code' => OrganizationInvitation::generateVerificationCode(),
         ]);
 
         AuditLog::record(
@@ -150,73 +152,81 @@ class InvitationService
 
     public function removeMember(Organization $organization, User $member, User $actor): void
     {
-        $role = $organization->roleFor($member);
+        DB::transaction(function () use ($organization, $member, $actor) {
+            $locked = Organization::whereKey($organization->id)->lockForUpdate()->first();
 
-        if (! $role) {
-            abort(404);
-        }
+            $role = $locked->roleFor($member);
 
-        if ($role === OrganizationRole::Admin) {
-            $adminCount = $organization->users()
-                ->wherePivot('role', OrganizationRole::Admin->value)
-                ->count();
-
-            if ($adminCount <= 1) {
-                throw ValidationException::withMessages([
-                    'member' => 'Cannot remove the last admin. Promote another member to admin first.',
-                ]);
+            if (! $role) {
+                abort(404);
             }
-        }
 
-        $organization->users()->detach($member->id);
+            if ($role === OrganizationRole::Admin) {
+                $adminCount = $locked->users()
+                    ->wherePivot('role', OrganizationRole::Admin->value)
+                    ->count();
 
-        AuditLog::record(
-            $organization,
-            'organization.member.removed',
-            $actor,
-            $organization,
-            [
-                'member_id' => $member->id,
-                'member_email' => $member->email,
-                'role' => $role->value,
-            ],
-        );
+                if ($adminCount <= 1) {
+                    throw ValidationException::withMessages([
+                        'member' => 'Cannot remove the last admin. Promote another member to admin first.',
+                    ]);
+                }
+            }
+
+            $locked->users()->detach($member->id);
+
+            AuditLog::record(
+                $locked,
+                'organization.member.removed',
+                $actor,
+                $locked,
+                [
+                    'member_id' => $member->id,
+                    'member_email' => $member->email,
+                    'role' => $role->value,
+                ],
+            );
+        });
     }
 
     public function changeRole(Organization $organization, User $member, OrganizationRole $newRole, User $actor): void
     {
-        $currentRole = $organization->roleFor($member);
+        DB::transaction(function () use ($organization, $member, $newRole, $actor) {
+            $locked = Organization::whereKey($organization->id)->lockForUpdate()->first();
 
-        if (! $currentRole) {
-            abort(404);
-        }
+            $currentRole = $locked->roleFor($member);
 
-        if ($currentRole === OrganizationRole::Admin && $newRole !== OrganizationRole::Admin) {
-            $adminCount = $organization->users()
-                ->wherePivot('role', OrganizationRole::Admin->value)
-                ->count();
-
-            if ($adminCount <= 1) {
-                throw ValidationException::withMessages([
-                    'role' => 'Cannot demote the last admin.',
-                ]);
+            if (! $currentRole) {
+                abort(404);
             }
-        }
 
-        $organization->users()->updateExistingPivot($member->id, [
-            'role' => $newRole->value,
-        ]);
+            if ($currentRole === OrganizationRole::Admin && $newRole !== OrganizationRole::Admin) {
+                $adminCount = $locked->users()
+                    ->wherePivot('role', OrganizationRole::Admin->value)
+                    ->count();
 
-        AuditLog::record(
-            $organization,
-            'organization.member.role_changed',
-            $actor,
-            $organization,
-            [
-                'member_id' => $member->id,
-                'from' => $currentRole->value,
-                'to' => $newRole->value,
-            ],
-        );
+                if ($adminCount <= 1) {
+                    throw ValidationException::withMessages([
+                        'role' => 'Cannot demote the last admin.',
+                    ]);
+                }
+            }
+
+            $locked->users()->updateExistingPivot($member->id, [
+                'role' => $newRole->value,
+            ]);
+
+            AuditLog::record(
+                $locked,
+                'organization.member.role_changed',
+                $actor,
+                $locked,
+                [
+                    'member_id' => $member->id,
+                    'from' => $currentRole->value,
+                    'to' => $newRole->value,
+                ],
+            );
+        });
     }
 }

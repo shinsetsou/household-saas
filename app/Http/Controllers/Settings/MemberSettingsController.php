@@ -82,7 +82,11 @@ class MemberSettingsController extends Controller
         abort_unless($invitation->organization_id === $organization->id, 404);
         abort_unless($invitation->isPending(), 404);
 
-        $url = URL::signedRoute('invitations.show', ['invitation' => $invitation->token]);
+        $url = URL::temporarySignedRoute(
+            'invitations.show',
+            $invitation->expires_at,
+            ['invitation' => $invitation->token],
+        );
 
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json(['url' => $url]);

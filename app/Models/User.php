@@ -17,6 +17,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'email',
         'password',
         'force_change_password',
+        'email_verified_at',
         'invitation_origin_org_slug',
         'invitation_origin_role',
         'invitation_origin_inviter_email',
