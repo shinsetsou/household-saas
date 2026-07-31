@@ -18,26 +18,29 @@ return Application::configure(basePath: dirname(__DIR__))
         SentryServiceProvider::class,
     ])
     ->withMiddleware(function (Middleware $middleware) {
-        // Trust X-Forwarded-Proto (and AWS-ELB chain) from upstream proxies so
-        // request()->isSecure() returns true and url() generates https URLs.
+        // Trust X-Forwarded-Proto from upstream proxies so request()->isSecure()
+        // returns true and url() generates https URLs.
         //
-        // We deliberately do NOT trust `X-Forwarded-For` or `X-Forwarded-Host`:
-        //   * X-Forwarded-For controls `request()->ip()`, which the throttle
-        //     middleware uses as its key. Trusting it would let an attacker
-        //     rotate headers to bypass the public `throttle:5,1` /
-        //     `throttle:10,1` limiters on /households and /contributions.
+        // We deliberately do NOT trust `X-Forwarded-For`, `X-Forwarded-Host`,
+        // `X-Forwarded-Port`, or the AWS-ELB combined bit (which silently
+        // bundles X-Forwarded-For in Symfony's TrustProxies):
+        //
+        //   * X-Forwarded-For controls `request()->ip()`. The throttle
+        //     middleware uses it as its key. Trusting it would let an
+        //     attacker rotate headers to bypass the public
+        //     `throttle:5,1` / `throttle:10,1` limiters on /households
+        //     and /contributions.
         //   * X-Forwarded-Host drives `request()->getHost()`. Trusting it
-        //     would let an attacker spoof the host header and affect
-        //     cache keys, signed-URL signing, and password-reset email
-        //     links.
+        //     would let an attacker spoof the host header and break signed
+        //     URLs, cache keys, and password-reset email links.
+        //   * X-Forwarded-Port would let the attacker spoof port detection.
         //
-        // Render / Railway / Fly document `trustProxies(at: '*')` as the
-        // recommended pattern because their proxy IPs rotate, but they
-        // rely on the application to scope WHICH headers to honor —
-        // this configuration does exactly that.
+        // Render / Railway / Fly document `trustProxies(at: '*')` because
+        // their proxy IPs rotate, but they require the application to scope
+        // WHICH headers to honor — this configuration does exactly that.
         $middleware->trustProxies(
             at: '*',
-            headers: Request::HEADER_X_FORWARDED_PROTO | Request::HEADER_X_FORWARDED_AWS_ELB,
+            headers: Request::HEADER_X_FORWARDED_PROTO,
         );
 
         $middleware->validateCsrfTokens(except: [
