@@ -46,7 +46,7 @@ class BillingTest extends TestCase
         config()->set('paymongo.secret_key', 'sk_test_fake');
         config()->set('paymongo.success_url', 'http://localhost/billing/return/success');
         config()->set('paymongo.cancel_url', 'http://localhost/billing/return/cancel');
-        config()->set('paymongo.webhook_secret', 'whsec_test_fake');
+        config()->set('paymongo.webhook_signing_secret', 'whsec_test_fake');
     }
 
     public function test_billing_settings_page_lists_plans(): void
@@ -368,51 +368,100 @@ class BillingTest extends TestCase
         $this->assertDatabaseMissing('payments', ['organization_id' => $this->organization->id]);
     }
 
+    public function test_webhook_rejects_malformed_signature_header(): void
+    {
+        $body = json_encode(['data' => ['attributes' => ['type' => 'payment.paid']]]);
+
+        $this->call('POST', route('billing.webhook'), [], [], [], [
+            'HTTP_PAYMONGO_SIGNATURE' => 'no-equals-signs',
+            'CONTENT_TYPE' => 'application/json',
+        ], $body)->assertStatus(401);
+
+        $this->call('POST', route('billing.webhook'), [], [], [], [
+            'HTTP_PAYMONGO_SIGNATURE' => 't=1234',
+            'CONTENT_TYPE' => 'application/json',
+        ], $body)->assertStatus(401);
+    }
+
     public function test_webhook_rejects_invalid_signature(): void
     {
-        $payload = ['data' => ['attributes' => ['type' => 'payment.paid']]];
+        $body = json_encode(['data' => ['attributes' => ['type' => 'payment.paid']]]);
+        $t = time();
 
-        $this->postJson(route('billing.webhook'), $payload, [
-            'Paymongo-Signature' => 'deadbeef',
-        ])->assertStatus(401);
+        $this->call('POST', route('billing.webhook'), [], [], [], [
+            'HTTP_PAYMONGO_SIGNATURE' => "t={$t},te=deadbeef,li=deadbeef",
+            'CONTENT_TYPE' => 'application/json',
+        ], $body)->assertStatus(401);
 
         $this->assertDatabaseMissing('payments', ['organization_id' => $this->organization->id]);
     }
 
+    public function test_webhook_rejects_stale_timestamp(): void
+    {
+        $body = json_encode(['data' => ['attributes' => ['type' => 'payment.paid']]]);
+        $t = time() - 600;
+        $signature = $this->signForTestMode($t, $body);
+
+        $this->call('POST', route('billing.webhook'), [], [], [], [
+            'HTTP_PAYMONGO_SIGNATURE' => "t={$t},te={$signature},li={$signature}",
+            'CONTENT_TYPE' => 'application/json',
+        ], $body)->assertStatus(401);
+    }
+
     public function test_webhook_rejects_payload_tampering_after_signing(): void
     {
+        $t = time();
         $signedBody = json_encode(['data' => ['attributes' => ['type' => 'payment.paid']]]);
-        $signature = hash_hmac('sha256', $signedBody, 'whsec_test_fake');
+        $signature = $this->signForTestMode($t, $signedBody);
 
         $tamperedBody = json_encode(['data' => ['attributes' => ['type' => 'source.chargeable']]]);
 
         $this->call('POST', route('billing.webhook'), [], [], [], [
-            'HTTP_PAYMONGO_SIGNATURE' => $signature,
+            'HTTP_PAYMONGO_SIGNATURE' => "t={$t},te={$signature},li={$signature}",
             'CONTENT_TYPE' => 'application/json',
         ], $tamperedBody)->assertStatus(401);
     }
 
     public function test_webhook_returns_500_when_secret_unset(): void
     {
-        config()->set('paymongo.webhook_secret', '');
+        config()->set('paymongo.webhook_signing_secret', '');
 
-        $payload = ['data' => ['attributes' => ['type' => 'payment.paid']]];
-        $body = json_encode($payload);
-        $signature = hash_hmac('sha256', $body, 'whsec_test_fake');
+        $body = json_encode(['data' => ['attributes' => ['type' => 'payment.paid']]]);
+        $t = time();
+        $signature = $this->signForTestMode($t, $body);
 
         $this->call('POST', route('billing.webhook'), [], [], [], [
-            'HTTP_PAYMONGO_SIGNATURE' => $signature,
+            'HTTP_PAYMONGO_SIGNATURE' => "t={$t},te={$signature},li={$signature}",
             'CONTENT_TYPE' => 'application/json',
         ], $body)->assertStatus(500);
+    }
+
+    public function test_webhook_accepts_valid_signature_in_test_mode(): void
+    {
+        config()->set('app.env', 'local');
+        $body = json_encode(['data' => ['attributes' => ['type' => 'source.chargeable']]]);
+        $t = time();
+        $signature = $this->signForTestMode($t, $body);
+
+        $this->call('POST', route('billing.webhook'), [], [], [], [
+            'HTTP_PAYMONGO_SIGNATURE' => "t={$t},te={$signature},li={$signature}",
+            'CONTENT_TYPE' => 'application/json',
+        ], $body)->assertOk();
+    }
+
+    private function signForTestMode(int $timestamp, string $body): string
+    {
+        return hash_hmac('sha256', $timestamp.'.'.$body, 'whsec_test_fake');
     }
 
     protected function postWebhook(array $payload)
     {
         $body = json_encode($payload);
-        $signature = hash_hmac('sha256', $body, 'whsec_test_fake');
+        $t = time();
+        $signature = $this->signForTestMode($t, $body);
 
         return $this->call('POST', route('billing.webhook'), [], [], [], [
-            'HTTP_PAYMONGO_SIGNATURE' => $signature,
+            'HTTP_PAYMONGO_SIGNATURE' => "t={$t},te={$signature},li={$signature}",
             'CONTENT_TYPE' => 'application/json',
         ], $body);
     }
