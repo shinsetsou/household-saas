@@ -71,14 +71,14 @@
                 <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-violet-600 text-white font-bold shadow-sm shadow-brand-900/20 ring-1 ring-brand-700/10 group-hover:shadow-brand-glow transition">
                     <span class="text-sm">B</span>
                 </span>
-                <span class="hidden sm:inline text-base font-extrabold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
+                <span class="hidden lg:inline text-base font-extrabold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
                     Barangay<span class="text-brand-600 dark:text-brand-500">Books</span>
                 </span>
             </a>
 
             <!-- Nav links — only when an organization context exists -->
             @if($navContext->organization)
-            <div class="hidden sm:flex items-center gap-1 flex-1 ml-3 min-w-0">
+            <div class="hidden sm:flex items-center gap-1 lg:gap-2 flex-1 ml-3 min-w-0">
                 @auth
                     <a href="{{ route('organizations.index', $navContext->organization->slug) }}"
                        class="nav-link {{ request()->routeIs('organizations.index') ? 'nav-link-active' : '' }}">
@@ -305,19 +305,19 @@
     <!-- Nav link styles — underline + colored text active state. -->
     <style>
         .nav-link {
-            @apply relative inline-flex items-center px-1 pt-2.5 pb-2 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors;
+            @apply relative inline-flex items-center px-2 lg:px-2.5 pt-2.5 pb-2 text-[13px] sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap;
         }
         /* Brand-colored underline that fades in on hover and stays for active. */
         .nav-link::after {
             content: '';
-            @apply absolute left-0 right-0 bottom-0 h-0.5 rounded-full bg-brand-600 dark:bg-brand-500 origin-center transition-transform duration-200;
+            @apply absolute left-2 right-2 bottom-0 h-0.5 rounded-full bg-brand-600 dark:bg-brand-500 origin-center transition-transform duration-200;
             transform: scaleX(0);
         }
         .nav-link:hover::after {
             transform: scaleX(0.6);
         }
         .nav-link-active {
-            @apply text-brand-700 dark:text-brand-300;
+            @apply text-brand-700 dark:text-brand-200;
         }
         .nav-link-active::after {
             transform: scaleX(1);
@@ -326,7 +326,7 @@
             @apply block px-3 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors;
         }
         .mobile-nav-link-active {
-            @apply text-brand-700 bg-brand-50 dark:text-brand-300 dark:bg-brand-900/30;
+            @apply text-brand-700 bg-brand-50 dark:text-brand-200 dark:bg-slate-800;
         }
     </style>
 
