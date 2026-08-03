@@ -62,6 +62,10 @@ class OrganizationController extends Controller
         $trendMax = max($monthlyTrend->pluck('total')->max() ?: 1, 1);
 
         // Recent activity feed (contributions + expenses merged, last 6).
+        // Eloquent\Collection::merge() calls getKey() on each item, so we have
+        // to drop down to a base Support\Collection before merging the mapped
+        // arrays (an empty result set would otherwise keep the Eloquent type
+        // and blow up on $item->getKey()).
         $recentContributions = Contribution::forOrganization($organization)
             ->with('household')
             ->latest('created_at')
@@ -73,7 +77,8 @@ class OrganizationController extends Controller
                 'sub' => 'Contribution · '.$c->verification_status,
                 'amount' => (float) $c->amount,
                 'when' => $c->created_at,
-            ]);
+            ])
+            ->toBase();
 
         $recentExpenses = $organization->expenses()
             ->latest('created_at')
@@ -85,7 +90,8 @@ class OrganizationController extends Controller
                 'sub' => 'Expense',
                 'amount' => -(float) $e->amount,
                 'when' => $e->created_at,
-            ]);
+            ])
+            ->toBase();
 
         $recentActivity = $recentContributions
             ->merge($recentExpenses)
