@@ -10,6 +10,7 @@ use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class BillingTest extends TestCase
@@ -56,6 +57,58 @@ class BillingTest extends TestCase
             ->assertSee('Community')
             ->assertSee('Barangay')
             ->assertSee('City');
+    }
+
+    public function test_billing_page_shows_subscribe_button_for_current_plan_while_trialing(): void
+    {
+        // Trialing on the free Community plan — must offer a way to pay for
+        // Community and convert the trial to a paid subscription.
+        $this->organization->update([
+            'plan_id' => $this->community->id,
+            'subscription_status' => Organization::SUBSCRIPTION_TRIALING,
+            'trial_ends_at' => now()->addDays(3),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('organizations.settings.billing.show', $this->organization->slug))
+            ->assertOk()
+            ->assertSee('Subscribe to Community')
+            ->assertSee('Current · Trial');
+    }
+
+    public function test_billing_page_shows_reactivate_button_for_current_plan_when_past_due(): void
+    {
+        $this->organization->update([
+            'plan_id' => $this->community->id,
+            'subscription_status' => Organization::SUBSCRIPTION_PAST_DUE,
+            'trial_ends_at' => now()->subDay(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('organizations.settings.billing.show', $this->organization->slug))
+            ->assertOk()
+            ->assertSee('Reactivate Community')
+            ->assertSee('Current · Past due');
+    }
+
+    public function test_billing_page_hides_button_on_current_plan_when_already_active(): void
+    {
+        $this->organization->update([
+            'plan_id' => $this->community->id,
+            'subscription_status' => Organization::SUBSCRIPTION_ACTIVE,
+        ]);
+
+        $response = $this->actingAs($this->admin)
+            ->get(route('organizations.settings.billing.show', $this->organization->slug))
+            ->assertOk();
+
+        // No "Subscribe", "Reactivate", or "Switch to Community" — the user
+        // has already paid. The other plans still show "Switch to <plan>".
+        $response->assertDontSee('Subscribe to Community');
+        $response->assertDontSee('Reactivate Community');
+        $response->assertDontSee('Switch to Community');
+        $response->assertSee('Switch to Barangay');
+        $response->assertSee('Switch to City');
     }
 
     public function test_billing_page_lists_all_three_plans_even_if_db_started_empty(): void
@@ -152,6 +205,23 @@ class BillingTest extends TestCase
 
     public function test_payment_paid_webhook_activates_subscription(): void
     {
+        // Pre-create the pending payment row that startCheckout() would have
+        // written. The real PayMongo payment.paid event does NOT carry our
+        // `organization_id` / `plan_id` in its metadata — those are in the
+        // checkout session we created earlier, and we persist them locally
+        // on the `payments` row. The webhook only signals "this payment
+        // succeeded, please activate it".
+        $payment = Payment::create([
+            'organization_id' => $this->organization->id,
+            'plan_id' => $this->barangay->id,
+            'paymongo_payment_id' => 'pay_test_1',
+            'amount_cents' => 49900,
+            'currency' => 'PHP',
+            'status' => Payment::STATUS_PENDING,
+            'description' => 'Checkout for Barangay',
+        ]);
+
+        // Real PayMongo `payment.paid` payload shape (no organization/plan metadata).
         $payload = [
             'data' => [
                 'id' => 'pay_test_1',
@@ -164,9 +234,9 @@ class BillingTest extends TestCase
                         'attributes' => [
                             'amount' => 49900,
                             'currency' => 'PHP',
+                            'status' => 'paid',
                             'metadata' => [
-                                'organization_id' => (string) $this->organization->id,
-                                'plan_id' => (string) $this->barangay->id,
+                                'pm_reference_number' => 'SBuAjs2',
                             ],
                         ],
                     ],
@@ -194,6 +264,9 @@ class BillingTest extends TestCase
             'status' => Payment::STATUS_PAID,
             'amount_cents' => 49900,
         ]);
+
+        $payment->refresh();
+        $this->assertNotNull($payment->subscription_id);
     }
 
     public function test_payment_paid_webhook_ignores_unrelated_payload(): void
@@ -203,6 +276,86 @@ class BillingTest extends TestCase
         $this->postWebhook($payload)->assertOk();
 
         $this->assertDatabaseMissing('payments', ['organization_id' => $this->organization->id]);
+    }
+
+    public function test_payment_paid_webhook_with_no_local_payment_row_is_logged_not_silently_ignored(): void
+    {
+        // A real PayMongo payment.paid arrives but our local `payments` row
+        // is missing (DB lost the row, race with refund, etc.). The handler
+        // must NOT activate any org — and must log loudly so we can spot it.
+        Log::spy();
+
+        $payload = [
+            'data' => [
+                'id' => 'pay_orphan_1',
+                'attributes' => [
+                    'type' => 'payment.paid',
+                    'amount' => 49900,
+                    'currency' => 'PHP',
+                    'data' => [
+                        'id' => 'pay_orphan_1',
+                        'attributes' => [
+                            'amount' => 49900,
+                            'currency' => 'PHP',
+                            'status' => 'paid',
+                            'metadata' => [
+                                'pm_reference_number' => 'SBuAjs2',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $this->postWebhook($payload)->assertOk();
+
+        $this->assertDatabaseHas('organizations', [
+            'id' => $this->organization->id,
+            'subscription_status' => Organization::SUBSCRIPTION_TRIALING,
+        ]);
+
+        Log::shouldHaveReceived('warning')
+            ->withArgs(fn ($message, $context) => $message === 'payment.paid webhook: no matching local payment row'
+                && ($context['paymongo_payment_id'] ?? null) === 'pay_orphan_1');
+    }
+
+    public function test_payment_paid_webhook_is_idempotent_on_retry(): void
+    {
+        $payment = Payment::create([
+            'organization_id' => $this->organization->id,
+            'plan_id' => $this->barangay->id,
+            'paymongo_payment_id' => 'pay_test_retry',
+            'amount_cents' => 49900,
+            'currency' => 'PHP',
+            'status' => Payment::STATUS_PENDING,
+            'description' => 'Checkout for Barangay',
+        ]);
+
+        $payload = [
+            'data' => [
+                'id' => 'pay_test_retry',
+                'attributes' => [
+                    'type' => 'payment.paid',
+                    'amount' => 49900,
+                    'currency' => 'PHP',
+                    'data' => [
+                        'id' => 'pay_test_retry',
+                        'attributes' => ['amount' => 49900, 'currency' => 'PHP', 'status' => 'paid'],
+                    ],
+                ],
+            ],
+        ];
+
+        $this->postWebhook($payload)->assertOk();
+        $this->postWebhook($payload)->assertOk();
+        $this->postWebhook($payload)->assertOk();
+
+        // Exactly one paid payment row exists for this org + payment id.
+        $this->assertSame(1, Payment::where('paymongo_payment_id', 'pay_test_retry')->count());
+        $this->assertSame(1, Payment::where('organization_id', $this->organization->id)->where('status', Payment::STATUS_PAID)->count());
+
+        $payment->refresh();
+        $this->assertSame(Payment::STATUS_PAID, $payment->status);
     }
 
     public function test_webhook_rejects_missing_signature(): void
@@ -498,8 +651,22 @@ class BillingTest extends TestCase
         $this->assertFalse($this->organization->fresh()->hasReachedHouseholdLimit());
     }
 
-    public function test_return_success_redirects_to_billing_with_message(): void
+    public function test_return_success_shows_processing_flash_when_org_not_yet_active(): void
     {
+        // The org is still trialing in setUp() — the webhook may not have
+        // arrived yet. The success URL must NOT claim the plan is active.
+        $this->get(route('billing.return.success', ['organization' => $this->organization->slug]))
+            ->assertRedirect(route('organizations.settings.billing.show', $this->organization->slug))
+            ->assertSessionHas('info');
+    }
+
+    public function test_return_success_shows_success_flash_when_org_is_active(): void
+    {
+        $this->organization->update([
+            'plan_id' => $this->barangay->id,
+            'subscription_status' => Organization::SUBSCRIPTION_ACTIVE,
+        ]);
+
         $this->get(route('billing.return.success', ['organization' => $this->organization->slug]))
             ->assertRedirect(route('organizations.settings.billing.show', $this->organization->slug))
             ->assertSessionHas('success');

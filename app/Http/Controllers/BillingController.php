@@ -66,9 +66,25 @@ class BillingController extends Controller
             return redirect()->route('home');
         }
 
+        // PayMongo always redirects the user back to the success URL once
+        // they leave the hosted checkout — even if the payment hasn't actually
+        // settled yet, or failed, or the webhook is delayed. Check the org's
+        // real subscription status to decide which flash to show.
+        $organization = Organization::where('slug', $slug)->first();
+        $isActive = $organization
+            && $organization->subscription_status === Organization::SUBSCRIPTION_ACTIVE;
+
+        $billingRoute = 'organizations.settings.billing.show';
+
+        if ($isActive) {
+            return redirect()
+                ->route($billingRoute, $slug)
+                ->with('success', 'Payment received. Your plan is now active.');
+        }
+
         return redirect()
-            ->route('organizations.settings.billing.show', $slug)
-            ->with('success', 'Payment received. Your plan is now active.');
+            ->route($billingRoute, $slug)
+            ->with('info', 'Thanks! We\'re processing your payment. Your plan will activate in a few seconds — refresh this page if it doesn\'t update automatically.');
     }
 
     public function returnCancel(Request $request): RedirectResponse

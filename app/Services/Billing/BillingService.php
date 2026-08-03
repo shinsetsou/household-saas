@@ -9,6 +9,7 @@ use App\Models\Subscription;
 use App\Services\PayMongo\PayMongoClient;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
@@ -54,6 +55,7 @@ class BillingService
 
         Payment::create([
             'organization_id' => $organization->id,
+            'plan_id' => $plan->id,
             'amount_cents' => $plan->price_cents,
             'currency' => $plan->currency,
             'status' => Payment::STATUS_PENDING,
@@ -72,86 +74,151 @@ class BillingService
     {
         $paymentId = data_get($payload, 'id');
         $attributes = data_get($payload, 'attributes', []);
-        $metadata = data_get($attributes, 'metadata', []);
 
-        $organizationId = $metadata['organization_id'] ?? null;
-        $planId = $metadata['plan_id'] ?? null;
+        // Source of truth for which org + plan this payment is for is the
+        // local `payments` row we created in `startCheckout()` (we set both
+        // `organization_id` and `plan_id` there). The PayMongo payment.paid
+        // event's metadata is PayMongo's own (`pm_reference_number`), not
+        // ours — so we look up the local row by `paymongo_payment_id` first,
+        // then fall back to the checkout session id.
+        $payment = null;
+        if ($paymentId) {
+            $payment = Payment::where('paymongo_payment_id', $paymentId)->first();
+        }
 
-        if (! $organizationId || ! $planId) {
+        if (! $payment) {
+            $sessionId = data_get($attributes, 'payment_intent_id')
+                ?: data_get($payload, 'payment_intent_id');
+
+            if ($sessionId) {
+                $payment = Payment::where('paymongo_checkout_session_id', $sessionId)->first();
+            }
+        }
+
+        if (! $payment) {
+            // Last-resort metadata fallback. Some upstream callers / older
+            // flows may still stamp `organization_id` + `plan_id` into the
+            // payment metadata; honor that for backward compat.
+            $metadata = data_get($attributes, 'metadata', []);
+            $organizationId = $metadata['organization_id'] ?? null;
+            $planId = $metadata['plan_id'] ?? null;
+
+            if ($organizationId && $planId) {
+                $organization = Organization::find($organizationId);
+                $plan = Plan::find($planId);
+
+                if ($organization && $plan) {
+                    DB::transaction(function () use ($organization, $plan, $payload, $paymentId, $attributes) {
+                        $this->activateForOrganization(
+                            $organization,
+                            $plan,
+                            $payload,
+                            $paymentId,
+                            $attributes,
+                            null,
+                        );
+                    });
+
+                    return;
+                }
+            }
+
+            Log::warning('payment.paid webhook: no matching local payment row', [
+                'paymongo_payment_id' => $paymentId,
+                'paymongo_payment_intent_id' => data_get($attributes, 'payment_intent_id'),
+                'amount' => data_get($attributes, 'amount'),
+            ]);
+
             return;
         }
 
-        $organization = Organization::find($organizationId);
-        $plan = Plan::find($planId);
+        // Re-fetch the org + plan from the local row, not from the webhook.
+        $organization = $payment->organization;
+        $plan = $payment->plan;
 
         if (! $organization || ! $plan) {
+            Log::warning('payment.paid webhook: payment row missing org/plan', [
+                'paymongo_payment_id' => $paymentId,
+                'payment_id' => $payment->id,
+                'organization_id' => $payment->organization_id,
+                'plan_id' => $payment->plan_id,
+            ]);
+
             return;
         }
 
-        DB::transaction(function () use ($organization, $plan, $payload, $paymentId, $attributes) {
-            $payment = Payment::where('organization_id', $organization->id)
-                ->where('paymongo_payment_id', $paymentId)
-                ->first();
+        // Idempotency: if this payment is already marked paid, skip the
+        // second activation. PayMongo retries webhooks aggressively.
+        if ($payment->status === Payment::STATUS_PAID) {
+            return;
+        }
 
-            if (! $payment) {
-                $sessionId = data_get($payload, 'id');
-                $sourceSessionId = data_get($payload, 'attributes.source.id');
-
-                $payment = Payment::where('organization_id', $organization->id)
-                    ->where(function ($query) use ($sessionId, $sourceSessionId) {
-                        $query->where('paymongo_checkout_session_id', $sessionId);
-
-                        if ($sourceSessionId) {
-                            $query->orWhere('paymongo_checkout_session_id', $sourceSessionId);
-                        }
-                    })
-                    ->first();
-            }
-
-            if ($payment) {
-                $payment->update([
-                    'paymongo_payment_id' => $paymentId,
-                    'status' => Payment::STATUS_PAID,
-                    'amount_cents' => data_get($attributes, 'amount', $payment->amount_cents),
-                    'paid_at' => Carbon::now(),
-                    'payload' => $payload,
-                ]);
-            } else {
-                $payment = Payment::create([
-                    'organization_id' => $organization->id,
-                    'paymongo_payment_id' => $paymentId,
-                    'amount_cents' => data_get($attributes, 'amount', $plan->price_cents),
-                    'currency' => data_get($attributes, 'currency', $plan->currency),
-                    'status' => Payment::STATUS_PAID,
-                    'description' => 'Payment for '.$plan->name,
-                    'paid_at' => Carbon::now(),
-                    'payload' => $payload,
-                ]);
-            }
-
-            $periodStart = Carbon::now();
-            $periodEnd = $periodStart->copy()->addMonth();
-
-            $subscription = Subscription::updateOrCreate(
-                ['organization_id' => $organization->id],
-                [
-                    'plan_id' => $plan->id,
-                    'status' => Subscription::STATUS_ACTIVE,
-                    'current_period_start' => $periodStart,
-                    'current_period_end' => $periodEnd,
-                    'canceled_at' => null,
-                ],
+        DB::transaction(function () use ($payment, $organization, $plan, $payload, $paymentId, $attributes) {
+            $this->activateForOrganization(
+                $organization,
+                $plan,
+                $payload,
+                $paymentId,
+                $attributes,
+                $payment,
             );
-
-            $payment->update(['subscription_id' => $subscription->id]);
-
-            $organization->update([
-                'plan_id' => $plan->id,
-                'subscription_status' => Organization::SUBSCRIPTION_ACTIVE,
-                'trial_ends_at' => null,
-                'subscription_ends_at' => $periodEnd,
-            ]);
         });
+    }
+
+    protected function activateForOrganization(
+        Organization $organization,
+        Plan $plan,
+        array $payload,
+        ?string $paymentId,
+        array $attributes,
+        ?Payment $existingPayment,
+    ): void {
+        $payment = $existingPayment;
+
+        if (! $payment) {
+            $payment = Payment::create([
+                'organization_id' => $organization->id,
+                'plan_id' => $plan->id,
+                'paymongo_payment_id' => $paymentId,
+                'amount_cents' => data_get($attributes, 'amount', $plan->price_cents),
+                'currency' => data_get($attributes, 'currency', $plan->currency),
+                'status' => Payment::STATUS_PAID,
+                'description' => 'Payment for '.$plan->name,
+                'paid_at' => Carbon::now(),
+                'payload' => $payload,
+            ]);
+        } else {
+            $payment->update([
+                'paymongo_payment_id' => $paymentId,
+                'status' => Payment::STATUS_PAID,
+                'amount_cents' => data_get($attributes, 'amount', $payment->amount_cents),
+                'paid_at' => Carbon::now(),
+                'payload' => $payload,
+            ]);
+        }
+
+        $periodStart = Carbon::now();
+        $periodEnd = $periodStart->copy()->addMonth();
+
+        $subscription = Subscription::updateOrCreate(
+            ['organization_id' => $organization->id],
+            [
+                'plan_id' => $plan->id,
+                'status' => Subscription::STATUS_ACTIVE,
+                'current_period_start' => $periodStart,
+                'current_period_end' => $periodEnd,
+                'canceled_at' => null,
+            ],
+        );
+
+        $payment->update(['subscription_id' => $subscription->id]);
+
+        $organization->update([
+            'plan_id' => $plan->id,
+            'subscription_status' => Organization::SUBSCRIPTION_ACTIVE,
+            'trial_ends_at' => null,
+            'subscription_ends_at' => $periodEnd,
+        ]);
     }
 
     public function cancelSubscription(Organization $organization): void
@@ -310,10 +377,19 @@ class BillingService
 
     protected function buildReturnUrl(string $type, Organization $organization): string
     {
-        $base = $type === 'success'
+        $configured = $type === 'success'
             ? (string) config('paymongo.success_url')
             : (string) config('paymongo.cancel_url');
 
-        return $base.'?organization='.$organization->slug;
+        // The example env files use `${APP_URL}` placeholders, but PHP's env()
+        // does NOT interpolate them — the literal string is shipped to PayMongo
+        // and the hosted checkout then redirects the user to a broken URL.
+        // Fall back to a runtime-resolved absolute URL whenever the configured
+        // value is empty or still contains an unresolved placeholder.
+        if ($configured === '' || preg_match('/\$\{[A-Z_]+\}/', $configured)) {
+            $configured = url('/billing/return/'.$type);
+        }
+
+        return $configured.'?organization='.$organization->slug;
     }
 }

@@ -19,7 +19,8 @@ class Payment extends Model
     public const STATUS_REFUNDED = 'refunded';
 
     protected $fillable = [
-        'organization_id', 'subscription_id', 'paymongo_payment_id',
+        'organization_id', 'subscription_id', 'plan_id',
+        'paymongo_payment_id',
         'paymongo_checkout_session_id', 'amount_cents', 'currency',
         'status', 'description', 'payload', 'paid_at',
     ];
@@ -41,6 +42,11 @@ class Payment extends Model
     public function subscription(): BelongsTo
     {
         return $this->belongsTo(Subscription::class);
+    }
+
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
     }
 
     public function formattedAmount(): string

@@ -160,16 +160,27 @@
                     $isCurrent = $org->plan_id === $plan->id;
                     $isDowngrade = $currentPlan && $plan->price_cents < $currentPlan->price_cents;
                     $isUpgrade = $currentPlan && $plan->price_cents > $currentPlan->price_cents;
+                    // Show a "subscribe" / "reactivate" button on the current plan
+                    // when the org is trialing or past_due — they haven't actually
+                    // paid for it yet, so the no-button-on-current rule doesn't apply.
+                    $needsPayment = $isCurrent && ($isTrialing || $isPastDue);
                 @endphp
                 <div @class([
                     'relative rounded-2xl border-2 p-5 flex flex-col transition',
-                    'border-brand-500 ring-2 ring-brand-200' => $isCurrent,
+                    'border-brand-500 ring-2 ring-brand-200' => $isCurrent && ! $needsPayment,
+                    'border-amber-400 ring-2 ring-amber-200' => $needsPayment,
                     'border-slate-200 dark:border-slate-700 hover:border-slate-300' => ! $isCurrent,
                 ])>
                     @if($isCurrent)
-                        <span class="absolute -top-2 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-brand-600 to-violet-600 text-white shadow-sm">
-                            Current
-                        </span>
+                        @if($needsPayment)
+                            <span class="absolute -top-2 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $isPastDue ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800' }}">
+                                {{ $isPastDue ? 'Current · Past due' : 'Current · Trial' }}
+                            </span>
+                        @else
+                            <span class="absolute -top-2 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-brand-600 to-violet-600 text-white shadow-sm">
+                                Current
+                            </span>
+                        @endif
                     @elseif($isUpgrade)
                         <span class="absolute -top-2 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800">
                             Upgrade
@@ -215,16 +226,20 @@
                         </li>
                     </ul>
 
-                    @if(! $isCurrent)
+                    @if(! $isCurrent || $needsPayment)
                         <form method="POST" action="{{ route('organizations.settings.billing.checkout', [$org->slug, $plan->slug]) }}" class="mt-5">
                             @csrf
                             <button type="submit" @class([
                                 'w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900',
-                                'bg-gradient-to-r from-brand-600 to-violet-600 text-white shadow-sm hover:from-brand-700 hover:to-violet-700 focus:ring-brand-500' => $isUpgrade || ! $currentPlan,
+                                'bg-gradient-to-r from-brand-600 to-violet-600 text-white shadow-sm hover:from-brand-700 hover:to-violet-700 focus:ring-brand-500' => $isUpgrade || ! $currentPlan || $needsPayment,
                                 'bg-amber-50 text-amber-800 ring-1 ring-amber-200 hover:bg-amber-100 focus:ring-amber-500' => $isDowngrade,
                             ])>
                                 @if($isDowngrade)
                                     Downgrade to {{ $plan->name }}
+                                @elseif($needsPayment && $isPastDue)
+                                    Reactivate {{ $plan->name }}
+                                @elseif($needsPayment && $isTrialing)
+                                    Subscribe to {{ $plan->name }}
                                 @else
                                     Switch to {{ $plan->name }}
                                 @endif
@@ -233,6 +248,14 @@
                             @if($isDowngrade)
                                 <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
                                     Your current plan ends at period close — no double charge.
+                                </p>
+                            @elseif($needsPayment)
+                                <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
+                                    @if($isTrialing)
+                                        Start your {{ $plan->name }} subscription now &mdash; your trial converts to a paid plan.
+                                    @else
+                                        Pay {{ $plan->formattedPrice() }} to restore write access to your HOA.
+                                    @endif
                                 </p>
                             @endif
                         </form>
