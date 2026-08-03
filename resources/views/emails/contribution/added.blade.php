@@ -1,32 +1,47 @@
-<x-emails::layout :preview="'A new contribution has been added for household #' . $contributionData['household_id']" :title="'New Contribution Added'">
-    <h1 style="margin:0 0 16px;font-size:20px;font-weight:700;color:#0f172a;">New contribution added</h1>
+<x-emails::layout
+    :preview="'A new ₱' . number_format($contributionData['amount'], 2) . ' contribution was recorded for household #' . $contributionData['household_id']"
+    :title="'New contribution added'"
+    accent="emerald"
+>
+    <x-emails::heading kicker="Contribution recorded" accent="emerald">
+        A new contribution has been added
+    </x-emails::heading>
 
-    <p style="margin:0 0 16px;">
-        A new contribution has been recorded for household
-        <strong>#{{ $contributionData['household_id'] }}</strong>.
-    </p>
+    <x-emails::paragraph>
+        A new contribution was just recorded for household
+        <strong style="color:#0f172a;">#{{ $contributionData['household_id'] }}</strong>.
+        It is now <span style="display:inline-block;padding:2px 8px;border-radius:9999px;background-color:#fef3c7;color:#92400e;font-size:12px;font-weight:600;letter-spacing:0.01em;">pending verification</span>
+        &mdash; a treasurer or admin can review the proof of payment below.
+    </x-emails::paragraph>
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:16px 0;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;">
-        <tr>
-            <td style="padding:12px 16px;background-color:#f8fafc;font-size:13px;color:#64748b;width:40%;">Amount</td>
-            <td style="padding:12px 16px;font-size:14px;font-weight:600;color:#0f172a;">&#8369;{{ number_format($contributionData['amount'], 2) }}</td>
-        </tr>
-        <tr>
-            <td style="padding:12px 16px;background-color:#f8fafc;font-size:13px;color:#64748b;">Reference number</td>
-            <td style="padding:12px 16px;font-size:14px;color:#0f172a;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">{{ $contributionData['reference_number'] }}</td>
-        </tr>
-        <tr>
-            <td style="padding:12px 16px;background-color:#f8fafc;font-size:13px;color:#64748b;">Date</td>
-            <td style="padding:12px 16px;font-size:14px;color:#0f172a;">{{ now()->format('F j, Y') }}</td>
-        </tr>
-    </table>
+    <x-emails::data-list :rows="[
+        ['Amount' => '&#8369;' . number_format($contributionData['amount'], 2)],
+        ['Reference number' => '<span style=\"font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#4338ca;\">' . e($contributionData['reference_number']) . '</span>'],
+        ['Date' => now()->format('F j, Y')],
+        ['Household' => '#' . $contributionData['household_id']],
+    ]" />
 
     @if (! empty($contributionData['photo']))
-        <p style="margin:24px 0 8px;font-size:13px;font-weight:600;color:#0f172a;">Proof of payment</p>
-        <img src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url($contributionData['photo']) }}" alt="Proof of payment" style="display:block;max-width:100%;height:auto;border-radius:12px;border:1px solid #e2e8f0;">
+        <p style="margin:24px 0 8px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#64748b;">
+            Proof of payment
+        </p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 8px;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background-color:#f8fafc;">
+            <tr>
+                <td style="padding:8px;">
+                    <img src="{{ \Illuminate\Support\Facades\Storage::disk('s3')->url($contributionData['photo']) }}" alt="Proof of payment" style="display:block;width:100%;height:auto;border-radius:8px;">
+                </td>
+            </tr>
+        </table>
+        <p style="margin:0;font-size:12px;color:#94a3b8;">
+            Attached separately so it remains in your inbox even if images are blocked.
+        </p>
     @endif
 
-    <p style="margin:24px 0 0;color:#64748b;font-size:13px;">
-        Thanks,<br>The BarangayBooks team
+    <x-emails::paragraph muted>
+        You're receiving this because you're a member of this BarangayBooks organization.
+    </x-emails::paragraph>
+
+    <p style="margin:24px 0 0;font-size:13px;color:#64748b;">
+        &mdash; The BarangayBooks team
     </p>
 </x-emails::layout>

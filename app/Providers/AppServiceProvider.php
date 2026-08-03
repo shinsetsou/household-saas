@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Mail\Auth\ResetPasswordMail;
+use App\Mail\Auth\VerifyEmailMail;
 use App\Models\Contribution;
 use App\Models\Organization;
 use App\Models\OrganizationInvitation;
@@ -10,6 +12,8 @@ use App\Observers\OrganizationInvitationObserver;
 use App\Services\Billing\BillingService;
 use App\Services\PayMongo\PayMongoClient;
 use App\Support\NavContext;
+use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
@@ -32,6 +36,19 @@ class AppServiceProvider extends ServiceProvider
         // App\View\Components\Emails\Layout. This is belt-and-suspenders for
         // the anonymous component lookup at resources/views/components/emails/.
         Blade::componentNamespace('App\\View\\Components\\Emails', 'emails');
+
+        // Route Laravel's built-in auth notifications through our branded
+        // Mailables so the verification and password-reset emails match the
+        // rest of the app's design system.
+        VerifyEmail::toMailUsing(function ($notifiable, $verificationUrl) {
+            return new VerifyEmailMail($notifiable, $verificationUrl);
+        });
+
+        ResetPassword::toMailUsing(function ($notifiable, $token) {
+            $resetUrl = url(route('password.reset', $token, false));
+
+            return new ResetPasswordMail($notifiable, $resetUrl);
+        });
 
         if (! $this->shouldSeedPlans()) {
             return;
