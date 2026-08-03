@@ -16,8 +16,8 @@
     ];
     $sizes = [
         'sm' => 'px-3 py-1.5 text-xs gap-1.5',
-        'md' => 'px-4 py-2.5 text-sm gap-2',
-        'lg' => 'px-5 py-3 text-sm gap-2',
+        'md' => 'px-3.5 py-2 text-sm gap-2 sm:px-4 sm:py-2.5',
+        'lg' => 'px-4 py-2.5 text-sm gap-2 sm:px-5 sm:py-3',
     ];
     $variantClasses = $variants[$variant] ?? $variants['primary'];
     $sizeClasses = $sizes[$size] ?? $sizes['md'];

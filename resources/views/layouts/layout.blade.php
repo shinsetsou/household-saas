@@ -63,7 +63,7 @@
 
     <!-- ===== TOP NAVBAR ===== -->
     <nav class="fixed top-0 inset-x-0 z-40 h-16 bg-white/80 dark:bg-slate-950/80 backdrop-blur-md border-b border-slate-200/70 dark:border-slate-800/70 shadow-sm">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex items-center gap-4">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-full flex items-center gap-2 sm:gap-4">
 
             <!-- Brand -->
             <a href="{{ $navContext->organization ? route('organizations.index', $navContext->organization->slug) : url('/') }}"
@@ -71,14 +71,14 @@
                 <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-violet-600 text-white font-bold shadow-sm shadow-brand-900/20 ring-1 ring-brand-700/10 group-hover:shadow-brand-glow transition">
                     <span class="text-sm">B</span>
                 </span>
-                <span class="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">
+                <span class="hidden sm:inline text-base font-extrabold tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
                     Barangay<span class="text-brand-600 dark:text-brand-500">Books</span>
                 </span>
             </a>
 
             <!-- Nav links — only when an organization context exists -->
             @if($navContext->organization)
-            <div class="hidden sm:flex items-center gap-1 flex-1 ml-3">
+            <div class="hidden sm:flex items-center gap-1 flex-1 ml-3 min-w-0">
                 @auth
                     <a href="{{ route('organizations.index', $navContext->organization->slug) }}"
                        class="nav-link {{ request()->routeIs('organizations.index') ? 'nav-link-active' : '' }}">
@@ -147,12 +147,12 @@
             @endif
 
             <!-- Right actions -->
-            <div class="flex items-center gap-2 ml-auto">
+            <div class="flex items-center gap-1 sm:gap-2 ml-auto flex-shrink-0">
 
                 @auth
-                <!-- Dark mode toggle -->
+                <!-- Dark mode toggle (desktop only — moves into the mobile menu on small screens) -->
                 <button id="theme-toggle" type="button"
-                    class="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    class="hidden sm:inline-flex p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
                     aria-label="Toggle dark mode">
                     <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden dark:block" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/>
@@ -162,8 +162,10 @@
                     </svg>
                 </button>
 
-                {{-- User dropdown --}}
-                <div class="relative" x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
+                {{-- User dropdown — desktop: avatar + chevron + Alpine dropdown.
+                     Mobile: avatar only, no chevron, no dropdown — profile / settings /
+                     sign-out are reachable from the hamburger menu below. --}}
+                <div class="relative hidden sm:block" x-data="{ open: false }" @click.outside="open = false" @keydown.escape="open = false">
                     <button type="button"
                             @click="open = !open"
                             :aria-expanded="open"
@@ -210,11 +212,21 @@
                     </div>
                 </div>
 
-                <!-- Mobile menu button -->
+                {{-- Mobile-only avatar chip (decorative — the actual account
+                     menu lives inside the hamburger dropdown below). --}}
+                <div class="sm:hidden flex items-center" aria-hidden="true">
+                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-violet-600 text-white text-xs font-bold uppercase ring-1 ring-brand-700/10">
+                        {{ $navContext->userInitials }}
+                    </span>
+                </div>
+
+                <!-- Mobile menu button (far right of the bar) -->
                 @if($navContext->organization)
                 <button id="mobile-menu-btn" type="button"
-                    class="sm:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
-                    aria-label="Open menu">
+                    class="sm:hidden p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    aria-label="Open menu"
+                    aria-expanded="false"
+                    aria-controls="mobile-menu">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>
@@ -226,8 +238,9 @@
 
         <!-- Mobile dropdown menu -->
         @if($navContext->organization)
-        <div id="mobile-menu" class="hidden sm:hidden border-t border-slate-200 bg-white dark:bg-slate-900">
+        <div id="mobile-menu" class="hidden sm:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div class="px-3 py-2 space-y-1">
+                @auth
                 <a href="{{ route('organizations.index', $navContext->organization->slug) }}" class="mobile-nav-link {{ request()->routeIs('organizations.index') ? 'mobile-nav-link-active' : '' }}">Dashboard</a>
                 <a href="{{ route('home', $navContext->organization->slug) }}" class="mobile-nav-link {{ request()->routeIs('home') || request()->routeIs('households.*') ? 'mobile-nav-link-active' : '' }}">Households</a>
                 <a href="{{ route('contributions.index', $navContext->organization->slug) }}" class="mobile-nav-link {{ request()->routeIs('contributions.index') ? 'mobile-nav-link-active' : '' }}">Contributions</a>
@@ -243,19 +256,41 @@
                     </a>
                 @endif
 
-                <p class="px-3 pt-2 pb-1 text-[10px] uppercase tracking-wider text-slate-400 font-bold">Reports</p>
+                <p class="px-3 pt-3 pb-1 text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-bold">Reports</p>
                 <a href="{{ route('reports.contributions.index', $navContext->organization->slug) }}" class="mobile-nav-link">Contributions</a>
                 <a href="{{ route('reports.expenses.index', $navContext->organization->slug) }}" class="mobile-nav-link">Expenses</a>
                 <a href="{{ route('reports.delinquency.index', $navContext->organization->slug) }}" class="mobile-nav-link">Delinquency</a>
 
-                <hr class="my-2 border-slate-200">
+                <hr class="my-2 border-slate-200 dark:border-slate-800">
 
-                @auth
+                {{-- Account block (only when authed) — replaces the desktop
+                     Alpine dropdown. --}}
+                <div class="px-3 pt-2 pb-1 flex items-center gap-3">
+                    <span class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-brand-500 to-violet-600 text-white text-xs font-bold uppercase ring-1 ring-brand-700/10">
+                        {{ $navContext->userInitials }}
+                    </span>
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-slate-900 dark:text-white truncate">{{ auth()->user()->name }}</p>
+                        <p class="text-xs text-slate-500 truncate">{{ auth()->user()->email }}</p>
+                    </div>
+                </div>
+
                 <a href="{{ route('profile.edit', $navContext->organization ? ['organization' => $navContext->organization->slug] : []) }}" class="mobile-nav-link">Profile</a>
 
                 @if($navContext->isAdmin)
                     <a href="{{ route('organizations.settings.show', $navContext->organization->slug) }}" class="mobile-nav-link">Settings</a>
                 @endif
+
+                <button type="button" id="mobile-theme-toggle"
+                        class="mobile-nav-link w-full text-left flex items-center justify-between">
+                    <span class="flex items-center gap-2">
+                        <svg class="h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                        </svg>
+                        <span>Theme</span>
+                    </span>
+                    <span class="text-xs text-slate-500" data-theme-label>{{ \App\Support\NavContext::currentThemeLabel() }}</span>
+                </button>
 
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
@@ -394,12 +429,18 @@
     <!-- ===== SCRIPTS ===== -->
     @vite(['resources/js/app.js'])
     <script>
-        // Dark mode toggle
+        // Dark mode + mobile menu toggle
         document.addEventListener('DOMContentLoaded', function () {
-            var btn = document.getElementById('theme-toggle');
-            if (!btn) return;
-            btn.addEventListener('click', function () {
-                var html = document.documentElement;
+            var html = document.documentElement;
+
+            function syncThemeLabel() {
+                var isDark = html.classList.contains('dark');
+                document.querySelectorAll('[data-theme-label]').forEach(function (el) {
+                    el.textContent = isDark ? 'Dark' : 'Light';
+                });
+            }
+
+            function toggleTheme() {
                 if (html.classList.contains('dark')) {
                     html.classList.remove('dark');
                     localStorage.setItem('theme', 'light');
@@ -407,25 +448,25 @@
                     html.classList.add('dark');
                     localStorage.setItem('theme', 'dark');
                 }
-                // Mirror the inline Tailwind dark:block / dark:hidden classes.
-                document.querySelectorAll('[data-theme-icon]').forEach(function (el) {
-                    var target = el.getAttribute('data-theme-icon');
-                    if (target === 'sun') {
-                        el.classList.toggle('hidden', !html.classList.contains('dark'));
-                        el.classList.toggle('block', html.classList.contains('dark'));
-                    } else if (target === 'moon') {
-                        el.classList.toggle('hidden', html.classList.contains('dark'));
-                        el.classList.toggle('block', !html.classList.contains('dark'));
-                    }
-                });
-            });
+                syncThemeLabel();
+            }
+
+            var btn = document.getElementById('theme-toggle');
+            if (btn) btn.addEventListener('click', toggleTheme);
+
+            var mobileThemeBtn = document.getElementById('mobile-theme-toggle');
+            if (mobileThemeBtn) mobileThemeBtn.addEventListener('click', toggleTheme);
+
+            syncThemeLabel();
 
             // Mobile menu
             var mobileBtn = document.getElementById('mobile-menu-btn');
             var mobileMenu = document.getElementById('mobile-menu');
             if (mobileBtn && mobileMenu) {
                 mobileBtn.addEventListener('click', function () {
+                    var willOpen = mobileMenu.classList.contains('hidden');
                     mobileMenu.classList.toggle('hidden');
+                    mobileBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
                 });
             }
         });

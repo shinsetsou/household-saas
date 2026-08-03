@@ -44,4 +44,17 @@ class NavContext
             userInitials: $initials ?: '?',
         );
     }
+
+    /**
+     * Initial label for the mobile theme toggle. The DOM is the source of
+     * truth (this script runs before paint) so this is only a sensible
+     * server-side default that JS keeps in sync.
+     */
+    public static function currentThemeLabel(): string
+    {
+        // The pre-paint script sets `dark` by default unless localStorage
+        // says otherwise; we can't read localStorage here, so default to
+        // "Dark" and let JS correct it on hydration.
+        return 'Dark';
+    }
 }
