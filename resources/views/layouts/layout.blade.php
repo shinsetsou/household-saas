@@ -35,6 +35,34 @@
         }
     </script>
 
+    <!-- Nav link + mobile dropdown styles. Must use type="text/tailwindcss"
+         so the CDN processes @apply; plain <style> is silently dropped. -->
+    <style type="text/tailwindcss">
+        .nav-link {
+            @apply relative inline-flex items-center px-2 lg:px-2.5 pt-2.5 pb-2 text-[13px] sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap;
+        }
+        .nav-link::after {
+            content: '';
+            @apply absolute left-2 right-2 bottom-0 h-0.5 rounded-full bg-brand-600 dark:bg-brand-500 origin-center transition-transform duration-200;
+            transform: scaleX(0);
+        }
+        .nav-link:hover::after {
+            transform: scaleX(0.6);
+        }
+        .nav-link-active {
+            @apply text-brand-700 dark:text-brand-200;
+        }
+        .nav-link-active::after {
+            transform: scaleX(1);
+        }
+        .mobile-nav-link {
+            @apply block px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors;
+        }
+        .mobile-nav-link-active {
+            @apply text-brand-700 bg-brand-50 dark:text-brand-200 dark:bg-slate-800;
+        }
+    </style>
+
     <!-- Theme init: run before paint to prevent flash -->
     <script>
         (function () {
@@ -301,34 +329,6 @@
         </div>
         @endif
     </nav>
-
-    <!-- Nav link styles — underline + colored text active state. -->
-    <style>
-        .nav-link {
-            @apply relative inline-flex items-center px-2 lg:px-2.5 pt-2.5 pb-2 text-[13px] sm:text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors whitespace-nowrap;
-        }
-        /* Brand-colored underline that fades in on hover and stays for active. */
-        .nav-link::after {
-            content: '';
-            @apply absolute left-2 right-2 bottom-0 h-0.5 rounded-full bg-brand-600 dark:bg-brand-500 origin-center transition-transform duration-200;
-            transform: scaleX(0);
-        }
-        .nav-link:hover::after {
-            transform: scaleX(0.6);
-        }
-        .nav-link-active {
-            @apply text-brand-700 dark:text-brand-200;
-        }
-        .nav-link-active::after {
-            transform: scaleX(1);
-        }
-        .mobile-nav-link {
-            @apply block px-3 py-2 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors;
-        }
-        .mobile-nav-link-active {
-            @apply text-brand-700 bg-brand-50 dark:text-brand-200 dark:bg-slate-800;
-        }
-    </style>
 
     <!-- ===== PAGE WRAPPER ===== -->
     <div class="pt-16 min-h-screen flex flex-col">
