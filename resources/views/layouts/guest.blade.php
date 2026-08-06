@@ -6,7 +6,15 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#4f46e5">
 
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/android-chrome-192x192.png" type="image/png" sizes="192x192">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+
     <title>{{ $title ?? config('app.name', 'BarangayBooks') }}</title>
+
+    @seo
+    @stack('head')
 
     {{-- Fonts --}}
     <link rel="preconnect" href="https://fonts.bunny.net">

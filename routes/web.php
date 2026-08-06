@@ -16,7 +16,9 @@ use App\Http\Controllers\OrganizationSettingsController;
 use App\Http\Controllers\PendingInvitationsController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\RobotsController;
 use App\Http\Controllers\Settings\MemberSettingsController;
+use App\Http\Controllers\SitemapController;
 use App\Http\Middleware\EnsureOrganizationActive;
 use App\Http\Middleware\EnsureOrganizationAdmin;
 use App\Http\Middleware\EnsureOrganizationMember;
@@ -28,10 +30,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
-});
+})->name('welcome');
 
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/terms', 'legal.terms')->name('terms');
+
+Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
+Route::get('/robots.txt', RobotsController::class)->name('robots');
 
 Route::get('/dashboard', DashboardRedirectController::class)
     ->middleware(['auth', 'verified', 'force.password.change'])

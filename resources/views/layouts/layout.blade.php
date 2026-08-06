@@ -3,7 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/android-chrome-192x192.png" type="image/png" sizes="192x192">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#4f46e5">
     <title>@yield('title', 'BarangayBooks') &mdash; BarangayBooks</title>
+    @seo
+    @stack('head')
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
