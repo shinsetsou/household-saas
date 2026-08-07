@@ -1,5 +1,5 @@
 @props([
-    'state' => 'sales',           // 'sales' | 'support'
+    'state' => 'sales',
     'endpoint' => '/api/ai/sales/inquire',
     'greeting' => null,
     'placeholder' => null,
@@ -10,9 +10,7 @@
 
 @php
     $sessionKey = $sessionKey ?: ($state === 'support' ? 'bb_chat_support_session' : 'bb_chat_sales_session');
-    $headerText = $state === 'support'
-        ? 'Support chat'
-        : 'Chat with us';
+    $headerText = $state === 'support' ? 'Support chat' : 'Chat with us';
     $accent = $state === 'support' ? 'emerald' : 'brand';
     $greeting = $greeting ?: ($state === 'support'
         ? 'Hi! Ask anything about using BarangayBooks.'
@@ -20,18 +18,25 @@
     $placeholder = $placeholder ?: 'Type your message...';
     $buttonLabel = $state === 'support' ? 'Help' : 'Chat';
     $csrfToken = $csrfToken ?: csrf_token();
+
+    // Escape for both HTML attribute (double-quoted) AND Alpine @js() (single-quoted JS string).
+    // @js() is HTML-safe, but apostrophes in the greeting reach Alpine's eval() as "\u0027"
+    // which JS decodes correctly.
+    $greetingJson = json_encode($greeting, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 @endphp
 
 <div
-    x-data="bbChatWidget({ endpoint: @js($endpoint), state: @js($state), sessionKey: @js($sessionKey), organizationSlug: @js($organizationSlug), greeting: @js($greeting), csrfToken: @js($csrfToken), accent: @js($accent) })"
-    x-init="init()"
+    x-data="window.bbChatWidget ? window.bbChatWidget({ endpoint: @js($endpoint), state: @js($state), sessionKey: @js($sessionKey), organizationSlug: @js($organizationSlug), greeting: {{ $greetingJson }}, csrfToken: @js($csrfToken), accent: @js($accent) }) : {}"
+    x-init="if (typeof init === 'function') init()"
     x-cloak
     class="fixed bottom-4 right-4 z-50 flex flex-col items-end"
 >
     <div
         x-show="open"
-        x-transition.opacity
+        x-transition.opacity.duration.200ms
         @click.outside="open = false"
+        role="dialog"
+        aria-label="Chat with us"
         class="mb-3 w-[min(360px,calc(100vw-2rem))] h-[520px] max-h-[calc(100vh-7rem)] rounded-2xl bg-white dark:bg-slate-900 shadow-2xl shadow-slate-900/20 ring-1 ring-slate-200 dark:ring-slate-800 flex flex-col overflow-hidden"
     >
         <header class="flex items-center justify-between px-4 py-3 bg-{{ $accent }}-600 dark:bg-{{ $accent }}-700 text-white">
@@ -50,6 +55,10 @@
         </header>
 
         <div class="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-slate-50 dark:bg-slate-950" x-ref="transcript">
+            <template x-if="messages && messages.length === 0">
+                <div class="rounded-lg bg-white dark:bg-slate-800 ring-1 ring-slate-200 dark:ring-slate-700 px-3 py-2 text-sm text-slate-700 dark:text-slate-200 max-w-[85%]"
+                     x-text="greeting || '{{ $greeting }}'"></div>
+            </template>
             <template x-for="m in messages" :key="m.id">
                 <div :class="m.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
                     <div
@@ -88,7 +97,7 @@
                 ></textarea>
                 <button
                     type="submit"
-                    :disabled="pending || !input.trim()"
+                    :disabled="pending || !input || !input.trim()"
                     class="px-3 py-2 rounded-xl bg-{{ $accent }}-600 hover:bg-{{ $accent }}-700 disabled:opacity-50 text-white text-sm font-semibold transition"
                 >
                     Send
@@ -114,100 +123,9 @@
 </div>
 
 @once
-    @push('head')
-        <style>[x-cloak] { display: none !important; }</style>
-        {{-- Pre-scan: tell Tailwind CDN we use these dynamic accent classes --}}
-        <span class="hidden bg-brand-600 bg-brand-700 hover:bg-brand-600 hover:bg-brand-700 ring-brand-500 focus:ring-brand-500 shadow-brand-900/30 ring-brand-700/10 bg-emerald-600 bg-emerald-700 hover:bg-emerald-600 hover:bg-emerald-700 ring-emerald-500 focus:ring-emerald-500 shadow-emerald-900/30 ring-emerald-700/10"></span>
-    @endpush
-
-    @push('scripts')
-        <script>
-            window.bbChatWidget = function({ endpoint, state, sessionKey, organizationSlug, greeting, csrfToken, accent }) {
-                return {
-                    open: false,
-                    pending: false,
-                    input: '',
-                    error: '',
-                    sessionId: localStorage.getItem(sessionKey) || null,
-                    messages: [],
-
-                    init() {
-                        if (greeting) {
-                            this.messages.push({ id: 'g', role: 'assistant', content: greeting });
-                        }
-                        if (!this.sessionId && state === 'sales') {
-                            this.sessionId = (crypto.randomUUID ? crypto.randomUUID() : 'sales-' + Math.random().toString(36).slice(2) + '-' + Date.now());
-                            localStorage.setItem(sessionKey, this.sessionId);
-                        }
-                        this.$watch('open', (v) => {
-                            if (v) {
-                                this.$nextTick(() => this.$refs.input?.focus());
-                                this.scrollToBottom();
-                            }
-                        });
-                    },
-
-                    scrollToBottom() {
-                        const el = this.$refs.transcript;
-                        if (el) el.scrollTop = el.scrollHeight;
-                    },
-
-                    async send() {
-                        const text = this.input.trim();
-                        if (!text || this.pending) return;
-                        this.error = '';
-                        this.input = '';
-                        this.messages.push({ id: 'u-' + Date.now(), role: 'user', content: text });
-                        this.pending = true;
-                        this.$nextTick(this.scrollToBottom);
-
-                        const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
-                        if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
-                        if (state === 'sales') headers['X-Session-Id'] = this.sessionId;
-
-                        const body = { message: text };
-                        if (state === 'support') {
-                            body.organization_slug = organizationSlug;
-                        } else {
-                            body.session_id = this.sessionId;
-                        }
-
-                        try {
-                            const res = await fetch(endpoint, {
-                                method: 'POST',
-                                headers,
-                                body: JSON.stringify(body),
-                                credentials: 'same-origin',
-                            });
-
-                            if (res.status === 429) {
-                                throw new Error('Too many requests. Please slow down and try again in a minute.');
-                            }
-                            if (res.status === 402) {
-                                throw new Error('Our AI assistant has reached its daily limit. Please try again tomorrow.');
-                            }
-                            if (!res.ok) {
-                                const data = await res.json().catch(() => ({}));
-                                throw new Error(data.message || data.error || 'Sorry, something went wrong.');
-                            }
-
-                            const data = await res.json();
-                            const reply = data.reply || '';
-                            this.messages.push({ id: 'a-' + Date.now(), role: 'assistant', content: reply });
-                            if (data.session_id) {
-                                this.sessionId = data.session_id;
-                                localStorage.setItem(sessionKey, data.session_id);
-                            }
-                        } catch (e) {
-                            this.error = e.message;
-                            this.messages.push({ id: 'e-' + Date.now(), role: 'assistant', content: 'Sorry, I could not reach our assistant right now. Please try again.' });
-                        } finally {
-                            this.pending = false;
-                            this.$nextTick(this.scrollToBottom);
-                        }
-                    },
-                };
-            };
-        </script>
-    @endpush
+    {{-- The bbChatWidget helper + Tailwind prescan lives in
+         resources/views/partials/chat-widget-helper.blade.php
+         and is included by every layout that mounts this widget.
+         Do NOT add @push directives here — they execute AFTER @stack and
+         would land in <body>, racing Alpine for the function definition. --}}
 @endonce
