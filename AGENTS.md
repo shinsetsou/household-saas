@@ -135,6 +135,17 @@ All views: **Breadcrumb → Page Header (title + CTA) → Content card.**
 
 `resources/views/layouts/layout.blade.php` is the master tenant layout (CDN Tailwind, dark toggle). `app/View/Components/AppLayout.php` + `GuestLayout.php` are Breeze's auth layouts for `/profile`, `/login`, `/register`.
 
+### Chat widget
+
+`resources/views/components/chat-widget.blade.php` is a single Alpine component rendered in two flavors:
+
+- **Sales** on the marketing landing (`resources/views/welcome.blade.php`) — anonymous, throttle `throttle:30,1`, calls `POST /api/ai/sales/inquire`. Persists via `session_id` (uuid v4 stored in localStorage).
+- **Support** in the tenant layout, gated on `$navContext->canVerify` (admin + treasurer only). Calls `POST /api/ai/support/message` with `organization_slug` from the resolved tenant. The controller additionally re-checks the role because the chat route is not bound to `{organization:slug}`. Viewers never see the widget and get 403 if they hit the URL directly.
+
+Sales and Support histories are kept in isolated tables (`sales_conversations` + messages, `support_conversations` + messages). The `App\Services\ChatSession` service enforces the separation — never read one table from the other's endpoint.
+
+Leads captured via the Sales widget are persisted to the `leads` table (not `users`) with a follow-up email chain dispatched on the `ai` queue (`App\AI\Jobs\SendSalesFollowupEmail`, cadence `day0 → day3 → day7`). Idempotency is enforced both in `App\Services\LeadCaptureService` and on the job's `followup_stage` guard. The `App\AI\Tools\Sales\HandoffToHumanTool` fires the `sales.handoff_requested` event for future Slack/Discord/email notifications.
+
 ## Environment
 
 Default uses SQLite (`database/database.sqlite`). Docker Compose spins up MySQL 8.0 on 3306 alongside the app (port 80) and Vite (port 5173). Mail is Mailtrap-configured in `.env`; tests force `MAIL_MAILER=array`.
@@ -165,3 +176,14 @@ Default uses SQLite (`database/database.sqlite`). Docker Compose spins up MySQL 
 - Errors and traces ship to Sentry via `sentry/sentry-laravel` (see `docs/OBSERVABILITY.md`). **The SDK is optional** — `composer require sentry/sentry-laravel` when you're ready to enable. `App\Providers\SentryServiceProvider` guards with `class_exists` so the app boots fine without it.
 - `App\Support\SentryPiiScrubber` strips passwords, tokens, PayMongo/AWS secrets, and card-shaped numbers from every event before it leaves the app. Registered via `App\Providers\SentryServiceProvider`.
 - Set `SENTRY_RELEASE` to your deploy SHA so errors group by release.
+
+## AI layer (AIManager)
+
+- All AI lives in `app/AI/`. Use `AI::agent('sales')->task(...)->run()` from anywhere — never call OpenAI directly.
+- `AIManager` picks the provider (`AI_PROVIDER` env: `openai` prod, `ollama` dev-only, `fake` tests).
+- Phase 1 ships **Founder** (daily exec brief, cron @ 07:00 Asia/Manila), **Sales** (public website chat), **Support** (RAG-first, KB threshold 0.55, auto-tickets, **admin+treasurer only** at the chat endpoint), **Customer Success** (nightly churn scan + escalation).
+- Tools wrap services — never let an agent query the DB directly. New tools extend `App\AI\Tools\BaseTool` and register in `config/ai.php` under `agents.<name>.tools`.
+- Long-term memory lives in `ai_memories` (JSON embeddings + cosine similarity in PHP; swap to pgvector behind the `MemoryStore` interface later). KB seeded via `php artisan ai:embed-docs`.
+- Every call is logged to `ai_call_logs`. View at `GET /api/ai/call-logs` (admin only).
+- Cost guards: `EnforceDailyCostCap` refuses dispatches once `AI_DAILY_COST_CAP_CENTS` is hit; per-agent caps in config.
+- See `docs/AI_SETUP.md` for setup; `docs/AI_VISION.md` for the long-term roadmap (Marketing/SEO/PM/Finance agents are Phase 2).

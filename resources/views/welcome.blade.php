@@ -545,5 +545,14 @@
     </footer>
 
     <style>[x-cloak] { display: none !important; }</style>
+
+    <x-chat-widget
+        state="sales"
+        endpoint="/api/ai/sales/inquire"
+        greeting="Hi! Questions about BarangayBooks for your HOA? Ask anything — pricing, features, trial — I'll point you to the right plan."
+        placeholder="Type a question..."
+    />
+
+    @stack('scripts')
 </body>
 </html>

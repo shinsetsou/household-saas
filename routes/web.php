@@ -158,3 +158,16 @@ Route::get('/billing/return/cancel', [BillingController::class, 'returnCancel'])
 Route::post('/billing/webhook', [BillingController::class, 'webhook'])
     ->middleware(VerifyPayMongoSignature::class)
     ->name('billing.webhook');
+
+Route::post('/api/ai/sales/inquire', [\App\Http\Controllers\Ai\SalesAgentController::class, 'inquire'])
+    ->middleware('throttle:10,1')
+    ->name('ai.sales.inquire');
+Route::post('/api/ai/support/message', [\App\Http\Controllers\Ai\SupportAgentController::class, 'message'])
+    ->middleware(['auth', 'verified'])
+    ->name('ai.support.message');
+Route::get('/api/ai/founder/brief/today', [\App\Http\Controllers\Ai\FounderBriefController::class, 'today'])
+    ->middleware(['auth', 'verified', EnsureOrganizationAdmin::class])
+    ->name('ai.founder.brief.today');
+Route::get('/api/ai/call-logs', [\App\Http\Controllers\Ai\CallLogController::class, 'index'])
+    ->middleware(['auth', 'verified', EnsureOrganizationAdmin::class])
+    ->name('ai.call-logs.index');

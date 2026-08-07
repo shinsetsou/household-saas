@@ -2,6 +2,12 @@
 
 namespace App\Providers;
 
+use App\AI\Events\AgentFailed;
+use App\AI\Events\CustomerSuccessEscalationTriggered;
+use App\AI\Events\FounderBriefGenerated;
+use App\AI\Listeners\NotifyFounderOfEscalation;
+use App\AI\Listeners\SendAgentFailureAlert;
+use App\AI\Listeners\SendFounderBriefEmail;
 use App\Events\ContributionCreated;
 use App\Events\OrganizationInvitationSent;
 use App\Listeners\SendContributionAddedEmail;
@@ -25,6 +31,15 @@ class EventServiceProvider extends ServiceProvider
         ],
         OrganizationInvitationSent::class => [
             SendOrganizationInvitationEmail::class,
+        ],
+        FounderBriefGenerated::class => [
+            SendFounderBriefEmail::class,
+        ],
+        AgentFailed::class => [
+            SendAgentFailureAlert::class,
+        ],
+        CustomerSuccessEscalationTriggered::class => [
+            NotifyFounderOfEscalation::class,
         ],
     ];
 

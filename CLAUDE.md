@@ -105,3 +105,14 @@ All views: **Breadcrumb → Page Header (title + CTA) → Content card.**
 ## Environment
 
 Default uses SQLite (`database/database.sqlite`). Docker Compose spins up MySQL 8.0 on 3306 alongside the app (port 80) and Vite (port 5173). Mail is Mailtrap-configured in `.env`; tests force `MAIL_MAILER=array`.
+
+## AI layer (AIManager)
+
+- All AI lives in `app/AI/`. Use `AI::agent('sales')->task(...)->run()` from anywhere — never call OpenAI directly.
+- `AIManager` picks the provider (`AI_PROVIDER` env: `openai` prod, `ollama` dev-only, `fake` tests).
+- Phase 1 ships **Founder** (daily exec brief, cron @ 07:00 Asia/Manila), **Sales** (public website chat), **Support** (RAG-first, KB threshold 0.55, auto-tickets), **Customer Success** (nightly churn scan + escalation).
+- Tools wrap services — never let an agent query the DB directly. New tools extend `App\AI\Tools\BaseTool` and register in `config/ai.php` under `agents.<name>.tools`.
+- Long-term memory lives in `ai_memories` (JSON embeddings + cosine similarity in PHP). KB seeded via `php artisan ai:embed-docs`.
+- Every call is logged to `ai_call_logs`. View at `GET /api/ai/call-logs` (admin only).
+- Cost guards: `EnforceDailyCostCap` refuses dispatches once `AI_DAILY_COST_CAP_CENTS` is hit.
+- See `docs/AI_SETUP.md` for setup; `docs/AI_VISION.md` for the long-term roadmap.

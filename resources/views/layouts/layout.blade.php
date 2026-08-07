@@ -478,5 +478,19 @@
             }
         });
     </script>
+
+    @auth
+        @if($navContext->canVerify && $navContext->organization)
+            <x-chat-widget
+                state="support"
+                endpoint="/api/ai/support/message"
+                :organization-slug="$navContext->organization->slug"
+                greeting="Hi! Ask anything about using BarangayBooks — imports, billing, reports."
+                placeholder="Ask about CSV import, billing, reports..."
+            />
+        @endif
+    @endauth
+
+    @stack('scripts')
 </body>
 </html>

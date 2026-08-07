@@ -27,9 +27,8 @@ class MailFailureListenerTest extends TestCase
     {
         Log::spy();
 
-        $user = Mockery::mock(User::class.'[sendEmailVerificationNotification]', [[
-            'id' => 1, 'name' => 'Test', 'email' => 'test@example.com',
-        ]]));
+$user = Mockery::mock(User::class.'[sendEmailVerificationNotification,hasVerifiedEmail]');
+        $user->id = 1;
         $user->shouldReceive('hasVerifiedEmail')->andReturn(false);
         $user->shouldReceive('sendEmailVerificationNotification')
             ->andThrow(new TransportException('Connection refused'));
