@@ -1,5 +1,3 @@
-<style>[x-cloak] { display: none !important; }</style>
-<span class="hidden bg-brand-600 bg-brand-700 hover:bg-brand-600 hover:bg-brand-700 ring-brand-500 focus:ring-brand-500 shadow-brand-900/30 ring-brand-700/10 bg-emerald-600 bg-emerald-700 hover:bg-emerald-600 hover:bg-emerald-700 ring-emerald-500 focus:ring-emerald-500 shadow-emerald-900/30 ring-emerald-700/10"></span>
 <script>
 window.bbChatWidget = function({ endpoint, state, sessionKey, organizationSlug, greeting, csrfToken, accent }) {
     return {
@@ -10,14 +8,20 @@ window.bbChatWidget = function({ endpoint, state, sessionKey, organizationSlug, 
         sessionId: localStorage.getItem(sessionKey) || null,
         messages: [],
         greeting: greeting,
+        endpoint: endpoint,
+        state: state,
+        sessionKey: sessionKey,
+        organizationSlug: organizationSlug,
+        csrfToken: csrfToken,
+        accent: accent,
 
         init() {
             if (this.greeting) {
                 this.messages.push({ id: 'g', role: 'assistant', content: this.greeting });
             }
-            if (!this.sessionId && state === 'sales') {
+            if (!this.sessionId && this.state === 'sales') {
                 this.sessionId = (crypto.randomUUID ? crypto.randomUUID() : 'sales-' + Math.random().toString(36).slice(2) + '-' + Date.now());
-                localStorage.setItem(sessionKey, this.sessionId);
+                localStorage.setItem(this.sessionKey, this.sessionId);
             }
             this.$watch('open', (v) => {
                 if (v) {
@@ -44,18 +48,18 @@ window.bbChatWidget = function({ endpoint, state, sessionKey, organizationSlug, 
             this.$nextTick(() => this.scrollToBottom());
 
             const headers = { 'Content-Type': 'application/json', 'Accept': 'application/json' };
-            if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
-            if (state === 'sales') headers['X-Session-Id'] = this.sessionId;
+            if (this.csrfToken) headers['X-CSRF-TOKEN'] = this.csrfToken;
+            if (this.state === 'sales') headers['X-Session-Id'] = this.sessionId;
 
             const body = { message: text };
-            if (state === 'support') {
-                body.organization_slug = organizationSlug;
+            if (this.state === 'support') {
+                body.organization_slug = this.organizationSlug;
             } else {
                 body.session_id = this.sessionId;
             }
 
             try {
-                const res = await fetch(endpoint, {
+                const res = await fetch(this.endpoint, {
                     method: 'POST',
                     headers,
                     body: JSON.stringify(body),
@@ -78,7 +82,7 @@ window.bbChatWidget = function({ endpoint, state, sessionKey, organizationSlug, 
                 this.messages.push({ id: 'a-' + Date.now(), role: 'assistant', content: reply });
                 if (data.session_id) {
                     this.sessionId = data.session_id;
-                    localStorage.setItem(sessionKey, data.session_id);
+                    localStorage.setItem(this.sessionKey, data.session_id);
                 }
             } catch (e) {
                 this.error = e.message;

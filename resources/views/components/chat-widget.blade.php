@@ -27,7 +27,6 @@
 
 <div
     x-data="window.bbChatWidget ? window.bbChatWidget({ endpoint: @js($endpoint), state: @js($state), sessionKey: @js($sessionKey), organizationSlug: @js($organizationSlug), greeting: {{ $greetingJson }}, csrfToken: @js($csrfToken), accent: @js($accent) }) : {}"
-    x-init="if (typeof init === 'function') init()"
     x-cloak
     class="fixed bottom-4 right-4 z-50 flex flex-col items-end"
 >

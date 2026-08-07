@@ -12,8 +12,10 @@
     @seo
     @stack('head')
 
-    {{-- Chat widget helper: must be defined before Alpine hydrates x-data --}}
-    <script>@include('partials.chat-widget-helper')</script>
+    {{-- Chat widget helper: defines window.bbChatWidget BEFORE Alpine loads --}}
+    @include('partials.chat-widget-helper')
+    <style>[x-cloak] { display: none !important; }</style>
+    <span class="hidden bg-brand-600 bg-brand-700 hover:bg-brand-600 hover:bg-brand-700 ring-brand-500 focus:ring-brand-500 shadow-brand-900/30 ring-brand-700/10 bg-emerald-600 bg-emerald-700 hover:bg-emerald-600 hover:bg-emerald-700 ring-emerald-500 focus:ring-emerald-500 shadow-emerald-900/30 ring-emerald-700/10"></span>
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
