@@ -120,7 +120,7 @@ class OpenAIProviderSchemaNormalizationTest extends TestCase
         $reflection = new \ReflectionMethod($provider, 'buildPayload');
         $reflection->setAccessible(true);
 
-        return $reflection->invoke($provider, $request);
+        return $reflection->invoke($provider, $request, $request->messages, $request->tools);
     }
 
     protected function makeEmptyTool(string $name): BaseTool
