@@ -103,17 +103,46 @@ class OpenAIProvider implements AIProvider
         }
 
         if (! empty($request->tools)) {
-            $payload['tools'] = array_map(fn ($t) => [
-                'type' => 'function',
-                'function' => [
-                    'name' => $t->name(),
-                    'description' => $t->description(),
-                    'parameters' => $t->schema(),
-                ],
-            ], $request->tools);
+            $payload['tools'] = array_map(function ($t) {
+                return [
+                    'type' => 'function',
+                    'function' => [
+                        'name' => $t->name(),
+                        'description' => $t->description(),
+                        'parameters' => $this->normalizeSchema($t->schema()),
+                    ],
+                ];
+            }, $request->tools);
         }
 
         return $payload;
+    }
+
+    /**
+     * Normalize a tool schema for OpenAI's strict JSON Schema validator.
+     *
+     * OpenAI rejects `parameters.properties = []` (a JSON array) and
+     * demands it be a JSON object `{}`. PHP's `json_encode` serializes
+     * an empty array as `[]`; we cast an empty properties map to a
+     * stdClass so it serializes as `{}`. Also defaults `type` and
+     * `required` when missing so no-arg tools like `recommend_plan`
+     * still produce a valid descriptor.
+     */
+    protected function normalizeSchema(array $schema): array
+    {
+        if (! isset($schema['type'])) {
+            $schema['type'] = 'object';
+        }
+
+        if (! isset($schema['properties']) || (is_array($schema['properties']) && $schema['properties'] === [])) {
+            $schema['properties'] = (object) [];
+        }
+
+        if (! isset($schema['required'])) {
+            $schema['required'] = [];
+        }
+
+        return $schema;
     }
 
     protected function http(): PendingRequest

@@ -33,6 +33,11 @@ abstract class BaseTool implements Tool
     /**
      * Helper to build a JSON-Schema object descriptor.
      *
+     * `properties` is normalized to an empty object (associative cast) when
+     * empty so json_encode emits `{}` instead of `[]`. OpenAI's strict
+     * tool-schema validator rejects `parameters.properties = []`; it must
+     * be a JSON object.
+     *
      * @param  array<string, mixed>  $properties
      * @param  array<int, string>  $required
      */
@@ -40,7 +45,7 @@ abstract class BaseTool implements Tool
     {
         return [
             'type' => 'object',
-            'properties' => $properties,
+            'properties' => $properties === [] ? (object) [] : $properties,
             'required' => $required,
         ];
     }
