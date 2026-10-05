@@ -28,11 +28,11 @@
         Choose a plan
     </x-emails::button>
 
-    <p style="margin:4px 0 0;font-size:13px;color:#475569;line-height:1.6;">
+    <p style="margin:4px 0 0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;color:#475569;line-height:1.6;">
         All your existing records are safe and will be waiting when you subscribe. No data has been deleted.
     </p>
 
-    <p style="margin:24px 0 0;font-size:13px;color:#64748b;">
+    <p style="margin:24px 0 0;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;color:#64748b;">
         &mdash; The BarangayBooks team
     </p>
 </x-emails::layout>

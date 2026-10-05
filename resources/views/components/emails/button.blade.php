@@ -14,7 +14,7 @@
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">
     <tr>
         <td align="left">
-            <a href="{{ $href }}" style="display:{{ $display }};{{ $width }}padding:13px 24px;background-color:{{ $palette['bg'] }};color:{{ $palette['text'] }};text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;letter-spacing:0.01em;box-shadow:0 4px 12px {{ $palette['shadow'] }};mso-padding-alt:0;">
+            <a href="{{ $href }}" style="display:{{ $display }};{{ $width }}padding:13px 24px;background-color:{{ $palette['bg'] }};color:{{ $palette['text'] }};text-decoration:none;border-radius:10px;font-weight:600;font-size:14px;letter-spacing:0.01em;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;box-shadow:0 4px 12px {{ $palette['shadow'] }};mso-padding-alt:0;">
                 {{ $slot }}
             </a>
         </td>

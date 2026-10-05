@@ -10,11 +10,11 @@
 @endphp
 
 @if ($kicker)
-    <p style="margin:0 0 8px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:{{ $kickerColor }};">
+    <p style="margin:0 0 8px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:{{ $kickerColor }};">
         {{ $kicker }}
     </p>
 @endif
 
-<h1 style="margin:0 0 16px;font-size:24px;line-height:1.25;font-weight:700;letter-spacing:-0.015em;color:#0f172a;">
+<h1 style="margin:0 0 16px;font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;font-weight:700;letter-spacing:-0.015em;color:#0f172a;">
     {{ $slot }}
 </h1>
