@@ -227,38 +227,38 @@
                     </ul>
 
                     @if(! $isCurrent || $needsPayment)
-                        <form method="POST" action="{{ route('organizations.settings.billing.checkout', [$org->slug, $plan->slug]) }}" class="mt-5">
-                            @csrf
-                            <button type="submit" @class([
-                                'w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900',
-                                'bg-gradient-to-r from-brand-600 to-violet-600 text-white shadow-sm hover:from-brand-700 hover:to-violet-700 focus:ring-brand-500' => $isUpgrade || ! $currentPlan || $needsPayment,
-                                'bg-amber-50 text-amber-800 ring-1 ring-amber-200 hover:bg-amber-100 focus:ring-amber-500' => $isDowngrade,
-                            ])>
-                                @if($isDowngrade)
-                                    Downgrade to {{ $plan->name }}
-                                @elseif($needsPayment && $isPastDue)
-                                    Reactivate {{ $plan->name }}
-                                @elseif($needsPayment && $isTrialing)
-                                    Subscribe to {{ $plan->name }}
-                                @else
-                                    Switch to {{ $plan->name }}
-                                @endif
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-                            </button>
+                        <a href="{{ config('services.paymongo.storefront_url') }}"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           @class([
+                               'w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900',
+                               'bg-gradient-to-r from-brand-600 to-violet-600 text-white shadow-sm hover:from-brand-700 hover:to-violet-700 focus:ring-brand-500' => $isUpgrade || ! $currentPlan || $needsPayment,
+                               'bg-amber-50 text-amber-800 ring-1 ring-amber-200 hover:bg-amber-100 focus:ring-amber-500' => $isDowngrade,
+                           ])>
                             @if($isDowngrade)
-                                <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
-                                    Your current plan ends at period close — no double charge.
-                                </p>
-                            @elseif($needsPayment)
-                                <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
-                                    @if($isTrialing)
-                                        Start your {{ $plan->name }} subscription now &mdash; your trial converts to a paid plan.
-                                    @else
-                                        Pay {{ $plan->formattedPrice() }} to restore write access to your HOA.
-                                    @endif
-                                </p>
+                                Downgrade to {{ $plan->name }}
+                            @elseif($needsPayment && $isPastDue)
+                                Reactivate {{ $plan->name }}
+                            @elseif($needsPayment && $isTrialing)
+                                Subscribe to {{ $plan->name }}
+                            @else
+                                Switch to {{ $plan->name }}
                             @endif
-                        </form>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        </a>
+                        @if($isDowngrade)
+                            <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
+                                Your current plan ends at period close — no double charge.
+                            </p>
+                        @elseif($needsPayment)
+                            <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
+                                @if($isTrialing)
+                                    Start your {{ $plan->name }} subscription now &mdash; your trial converts to a paid plan.
+                                @else
+                                    Pay {{ $plan->formattedPrice() }} to restore write access to your HOA.
+                                @endif
+                            </p>
+                        @endif
                     @endif
                 </div>
             @endforeach

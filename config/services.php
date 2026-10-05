@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    'paymongo' => [
+        'storefront_url' => env(
+            'PAYMONGO_STOREFRONT_URL',
+            'https://storefront.paymongo.com/barangay-books-subscription'
+        ),
+    ],
+
 ];
