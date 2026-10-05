@@ -26,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(PayMongoClient::class, fn () => PayMongoClient::make());
+        $this->app->bind('paymongo_client', fn () => PayMongoClient::make());
     }
 
     public function boot(): void

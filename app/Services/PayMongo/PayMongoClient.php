@@ -43,6 +43,62 @@ class PayMongoClient
         return $this->request('GET', '/payments/'.$id);
     }
 
+    /**
+     * Retrieve a payment by PayMongo payment id ("pay_xxxx") or by reference
+     * number ("pm_reference_number" from email receipts / QR Ph links).
+     *
+     * The payments list endpoint does not officially support filtering by
+     * reference, so this is best-effort: exact id first, then a small list scan.
+     */
+    public function retrievePayment(string $referenceOrId): array
+    {
+        if (str_starts_with($referenceOrId, 'pay_')) {
+            return $this->getPayment($referenceOrId);
+        }
+
+        // PayMongo supports ?reference_number on some channels but is
+        // undocumented for payments; try it and gracefully fall back.
+        $queryResponse = $this->http()->get('/payments', [
+            'reference_number' => $referenceOrId,
+        ]);
+
+        if ($queryResponse->successful()) {
+            $items = $queryResponse->json('data', []);
+
+            if (is_array($items) && count($items) === 1) {
+                return $items[0];
+            }
+        }
+
+        // Best-effort scan of the most recent 100 payments. This is not
+        // guaranteed to find anything; the user may need to supply the pay_ id.
+        $listResponse = $this->http()->get('/payments', ['limit' => 100]);
+
+        if ($listResponse->failed()) {
+            throw new PayMongoException(
+                'PayMongo payments list failed: '.$listResponse->status().' '.$listResponse->body(),
+                $listResponse->status(),
+            );
+        }
+
+        $items = $listResponse->json('data', []);
+
+        if (! is_array($items)) {
+            throw new PayMongoException('Unexpected PayMongo payments list response.');
+        }
+
+        foreach ($items as $item) {
+            $external = data_get($item, 'attributes.external_reference_number');
+            $metadataRef = data_get($item, 'attributes.metadata.pm_reference_number');
+
+            if ($external === $referenceOrId || $metadataRef === $referenceOrId) {
+                return $item;
+            }
+        }
+
+        throw new PayMongoException('Payment not found for reference: '.$referenceOrId, 404);
+    }
+
     public function createCustomer(array $attributes): array
     {
         return $this->request('POST', '/customers', [

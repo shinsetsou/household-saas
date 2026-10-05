@@ -40,6 +40,11 @@ return [
             'PAYMONGO_STOREFRONT_URL',
             'https://storefront.paymongo.com/barangay-books-subscription'
         ),
+        'plan_amounts' => [
+            'community' => 19900,
+            'barangay' => 49900,
+            'city' => 99900,
+        ],
     ],
 
 ];

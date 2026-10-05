@@ -31,6 +31,30 @@
 
 <div class="space-y-6">
 
+    {{-- Global flash messages --}}
+    @if(session('success') || session('error') || session('info'))
+        <div class="mb-6 space-y-4">
+            @if(session('success'))
+                <div class="rounded-xl bg-emerald-50 dark:bg-emerald-900/20 ring-1 ring-emerald-200 dark:ring-emerald-800 p-4 flex items-start gap-3">
+                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    <p class="text-sm font-semibold text-emerald-900 dark:text-emerald-100">{{ session('success') }}</p>
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="rounded-xl bg-red-50 dark:bg-red-900/20 ring-1 ring-red-200 dark:ring-red-800 p-4 flex items-start gap-3">
+                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <p class="text-sm font-semibold text-red-900 dark:text-red-100">{{ session('error') }}</p>
+                </div>
+            @endif
+            @if(session('info'))
+                <div class="rounded-xl bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-200 dark:ring-blue-800 p-4 flex items-start gap-3">
+                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <p class="text-sm font-semibold text-blue-900 dark:text-blue-100">{{ session('info') }}</p>
+                </div>
+            @endif
+        </div>
+    @endif
+
     {{-- Current plan hero --}}
     <div class="rounded-2xl overflow-hidden ring-1 ring-slate-200 dark:ring-slate-700 shadow-sm bg-white dark:bg-gray-800">
         <div class="relative bg-gradient-to-br from-brand-700 via-brand-600 to-violet-600 text-white px-6 py-7 sm:px-8 sm:py-8">
@@ -299,6 +323,66 @@
                     @endforeach
                 </tbody>
             </table>
+        </div>
+    @endif
+
+    {{-- Reference-number verification --}}
+    @if($needsPayment || $isCanceled || $isPastDue)
+        <div class="rounded-2xl bg-white dark:bg-gray-800 ring-1 ring-slate-200 dark:ring-slate-700 shadow-sm overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-start gap-3">
+                <span class="flex-shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </span>
+                <div class="flex-1">
+                    <h2 class="text-base font-semibold text-slate-900 dark:text-white">Already paid through PayMongo?</h2>
+                    <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">If you already completed payment on the PayMongo storefront or QR Ph page, paste the reference number from your receipt or email here.</p>
+                </div>
+            </div>
+            <div class="px-6 py-5">
+                <form method="POST" action="{{ route('organizations.settings.billing.verify-payment', $org->slug) }}" class="space-y-4">
+                    @csrf
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="verify_org_name" class="block text-sm font-semibold text-slate-900 dark:text-white">Organization name</label>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Type your organization name exactly to confirm.</p>
+                            <input type="text" name="org_name" id="verify_org_name" value="{{ old('org_name') }}" required
+                                class="mt-1.5 block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500 @error('org_name') border-red-300 focus:border-red-500 focus:ring-red-500 @enderror">
+                            @error('org_name')<p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="verify_reference" class="block text-sm font-semibold text-slate-900 dark:text-white">PayMongo reference or payment ID</label>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">e.g. SBuAjs2 or pay_xxxx</p>
+                            <input type="text" name="reference" id="verify_reference" value="{{ old('reference') }}" required minlength="3" maxlength="64"
+                                class="mt-1.5 block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500 @error('reference') border-red-300 focus:border-red-500 focus:ring-red-500 @enderror">
+                            @error('reference')<p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+
+                    @php
+                        $detectedPlan = null;
+                        if (old('reference')) {
+                            // No auto-detect on validation bounce; ask the user.
+                        }
+                    @endphp
+                    <div>
+                        <label for="verify_plan" class="block text-sm font-semibold text-slate-900 dark:text-white">Plan</label>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Leave on "Auto-detect from amount" unless the amount did not match a plan.</p>
+                        <select name="plan_slug" id="verify_plan"
+                            class="mt-1.5 block w-full rounded-lg border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm shadow-sm focus:border-brand-500 focus:ring-brand-500 @error('plan_slug') border-red-300 focus:border-red-500 focus:ring-red-500 @enderror">
+                            <option value="" {{ old('plan_slug') ? '' : 'selected' }}>Auto-detect from amount</option>
+                            @foreach($plans as $plan)
+                                <option value="{{ $plan->slug }}" {{ old('plan_slug') === $plan->slug ? 'selected' : '' }}>{{ $plan->name }} — {!! $plan->formattedPrice() !!}</option>
+                            @endforeach
+                        </select>
+                        @error('plan_slug')<p class="mt-1.5 text-xs text-red-600">{{ $message }}</p>@enderror
+                    </div>
+
+                    <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-brand-600 text-white px-4 py-2.5 text-sm font-semibold shadow-sm hover:from-emerald-700 hover:to-brand-700 transition focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        I already paid — verify my payment
+                    </button>
+                </form>
+            </div>
         </div>
     @endif
 

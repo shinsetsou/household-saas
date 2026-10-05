@@ -165,7 +165,7 @@ class BillingService
         });
     }
 
-    protected function activateForOrganization(
+    public function activateForOrganization(
         Organization $organization,
         Plan $plan,
         array $payload,

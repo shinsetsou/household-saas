@@ -1,6 +1,11 @@
 <?php
 
+use App\Http\Controllers\Ai\CallLogController;
+use App\Http\Controllers\Ai\FounderBriefController;
+use App\Http\Controllers\Ai\SalesAgentController;
+use App\Http\Controllers\Ai\SupportAgentController;
 use App\Http\Controllers\BillingController;
+use App\Http\Controllers\BillingPaymentVerifyController;
 use App\Http\Controllers\BillingSettingsController;
 use App\Http\Controllers\ContributionController;
 use App\Http\Controllers\DashboardRedirectController;
@@ -138,6 +143,7 @@ Route::prefix('/{organization:slug}')->group(function () {
             Route::post('settings/billing/checkout/{plan}', [BillingController::class, 'checkout'])->name('organizations.settings.billing.checkout');
             Route::post('settings/billing/cancel', [BillingSettingsController::class, 'cancel'])->name('organizations.settings.billing.cancel');
             Route::post('settings/billing/resume', [BillingSettingsController::class, 'resume'])->name('organizations.settings.billing.resume');
+            Route::post('settings/billing/verify-payment', BillingPaymentVerifyController::class)->middleware('throttle:5,1')->name('organizations.settings.billing.verify-payment');
         });
     });
 });
@@ -159,15 +165,15 @@ Route::post('/billing/webhook', [BillingController::class, 'webhook'])
     ->middleware(VerifyPayMongoSignature::class)
     ->name('billing.webhook');
 
-Route::post('/api/ai/sales/inquire', [\App\Http\Controllers\Ai\SalesAgentController::class, 'inquire'])
+Route::post('/api/ai/sales/inquire', [SalesAgentController::class, 'inquire'])
     ->middleware('throttle:10,1')
     ->name('ai.sales.inquire');
-Route::post('/api/ai/support/message', [\App\Http\Controllers\Ai\SupportAgentController::class, 'message'])
+Route::post('/api/ai/support/message', [SupportAgentController::class, 'message'])
     ->middleware(['auth', 'verified'])
     ->name('ai.support.message');
-Route::get('/api/ai/founder/brief/today', [\App\Http\Controllers\Ai\FounderBriefController::class, 'today'])
+Route::get('/api/ai/founder/brief/today', [FounderBriefController::class, 'today'])
     ->middleware(['auth', 'verified', EnsureOrganizationAdmin::class])
     ->name('ai.founder.brief.today');
-Route::get('/api/ai/call-logs', [\App\Http\Controllers\Ai\CallLogController::class, 'index'])
+Route::get('/api/ai/call-logs', [CallLogController::class, 'index'])
     ->middleware(['auth', 'verified', EnsureOrganizationAdmin::class])
     ->name('ai.call-logs.index');
