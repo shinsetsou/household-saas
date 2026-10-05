@@ -20,6 +20,7 @@ class OrganizationSettingsController extends Controller
         $before = [
             'name' => $organization->name,
             'monthly_due_amount' => (string) $organization->monthly_due_amount,
+            'manual_payment_instructions' => (string) $organization->manual_payment_instructions,
         ];
 
         $organization->fill($request->validated())->save();
@@ -27,6 +28,7 @@ class OrganizationSettingsController extends Controller
         $after = [
             'name' => $organization->name,
             'monthly_due_amount' => (string) $organization->monthly_due_amount,
+            'manual_payment_instructions' => (string) $organization->manual_payment_instructions,
         ];
 
         $changes = [];

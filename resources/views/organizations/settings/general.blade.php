@@ -24,6 +24,14 @@
             @error('monthly_due_amount')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
         </div>
 
+        <div>
+            <label for="manual_payment_instructions" class="block text-sm font-medium text-gray-700">Manual payment instructions</label>
+            <textarea id="manual_payment_instructions" name="manual_payment_instructions" rows="6"
+                      class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('manual_payment_instructions', $organization->manual_payment_instructions) }}</textarea>
+            <p class="mt-1 text-xs text-gray-500">Shown on the public lookup page and payment form when filled in. Leave blank to hide.</p>
+            @error('manual_payment_instructions')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+        </div>
+
         <div class="pt-2">
             <button type="submit" class="inline-flex items-center px-5 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition-colors shadow-sm">
                 Save changes
