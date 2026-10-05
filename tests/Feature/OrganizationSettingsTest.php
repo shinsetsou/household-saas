@@ -25,7 +25,6 @@ class OrganizationSettingsTest extends TestCase
         $response->assertSee('General', false);
         $response->assertSee('Members', false);
         $response->assertSee('Billing', false);
-        $response->assertSee('Coming soon', false);
         $response->assertSee('name="name"', false);
         $response->assertSee('name="monthly_due_amount"', false);
     }
@@ -136,6 +135,103 @@ class OrganizationSettingsTest extends TestCase
             'organization_id' => $org->id,
             'action' => 'organization.settings.updated',
         ]);
+    }
+
+    public function test_admin_can_update_manual_payment_instructions(): void
+    {
+        $user = User::factory()->create();
+        $org = Organization::factory()->create();
+        $user->organizations()->attach($org->id, ['role' => 'admin']);
+
+        $response = $this->actingAs($user)->patch(
+            route('organizations.settings.update-general', $org),
+            [
+                'name' => $org->name,
+                'monthly_due_amount' => $org->monthly_due_amount,
+                'manual_payment_instructions' => "GCash: 0917 123 4567\nBPI Savings: 1234 5678 9012",
+            ]
+        );
+
+        $response->assertRedirect(route('organizations.settings.show', $org->fresh()->slug));
+        $response->assertSessionHas('success');
+
+        $org->refresh();
+        $this->assertSame("GCash: 0917 123 4567\nBPI Savings: 1234 5678 9012", $org->manual_payment_instructions);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'organization_id' => $org->id,
+            'user_id' => $user->id,
+            'action' => 'organization.settings.updated',
+        ]);
+    }
+
+    public function test_update_can_clear_manual_payment_instructions(): void
+    {
+        $user = User::factory()->create();
+        $org = Organization::factory()->create([
+            'manual_payment_instructions' => 'Old instructions',
+        ]);
+        $user->organizations()->attach($org->id, ['role' => 'admin']);
+
+        $response = $this->actingAs($user)->patch(
+            route('organizations.settings.update-general', $org),
+            [
+                'name' => $org->name,
+                'monthly_due_amount' => $org->monthly_due_amount,
+                'manual_payment_instructions' => '',
+            ]
+        );
+
+        $response->assertRedirect(route('organizations.settings.show', $org->slug));
+        $response->assertSessionHas('success');
+
+        $this->assertNull($org->fresh()->manual_payment_instructions);
+    }
+
+    public function test_update_validates_manual_payment_instructions_max_length(): void
+    {
+        $user = User::factory()->create();
+        $org = Organization::factory()->create();
+        $user->organizations()->attach($org->id, ['role' => 'admin']);
+
+        $response = $this->actingAs($user)->patch(
+            route('organizations.settings.update-general', $org),
+            [
+                'name' => $org->name,
+                'monthly_due_amount' => $org->monthly_due_amount,
+                'manual_payment_instructions' => str_repeat('a', 5001),
+            ]
+        );
+
+        $response->assertSessionHasErrors('manual_payment_instructions');
+    }
+
+    public function test_manual_payment_instructions_render_escaped_on_lookup_page(): void
+    {
+        $user = User::factory()->create();
+        $org = Organization::factory()->create([
+            'manual_payment_instructions' => '<script>alert(1)</script>GCash: 0917 123 4567',
+        ]);
+        $user->organizations()->attach($org->id, ['role' => 'admin']);
+
+        $response = $this->get(route('home', $org->slug));
+
+        $response->assertOk();
+        $response->assertSee('How to pay dues');
+        $response->assertSee('GCash: 0917 123 4567');
+        $response->assertDontSee('<script>alert(1)</script>', false);
+    }
+
+    public function test_manual_payment_instructions_hidden_on_lookup_page_when_empty(): void
+    {
+        $org = Organization::factory()->create([
+            'manual_payment_instructions' => null,
+        ]);
+
+        $response = $this->get(route('home', $org->slug));
+
+        $response->assertOk();
+        $response->assertDontSee('How to pay dues');
     }
 
     public function test_slug_unchanged_after_rename(): void

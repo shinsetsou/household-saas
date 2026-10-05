@@ -131,23 +131,21 @@ class BillingTest extends TestCase
         $this->assertSame(3, Plan::count());
     }
 
-    public function test_billing_page_shows_switch_button_for_non_current_plans(): void
+    public function test_billing_page_buttons_link_to_storefront_url(): void
     {
-        // Put the org on the cheapest plan so both bigger plans show a button.
+        config()->set('services.paymongo.storefront_url', 'https://storefront.paymongo.test/barangay-books');
+
+        // Put the org on the cheapest plan so both bigger plans show a switch CTA.
         $this->organization->update(['plan_id' => $this->community->id]);
 
         $response = $this->actingAs($this->admin)
             ->get(route('organizations.settings.billing.show', $this->organization->slug));
 
         $response->assertOk();
-        // Both bigger plans should show their switch CTA.
         $response->assertSee('Switch to Barangay');
         $response->assertSee('Switch to City');
-        // The current plan should NOT show a switch button.
-        $this->assertStringNotContainsString(
-            'Switch to Community',
-            $response->getContent()
-        );
+        $response->assertSee('https://storefront.paymongo.test/barangay-books', false);
+        $response->assertSee('target="_blank"', false);
     }
 
     public function test_guest_cannot_view_billing_page(): void
