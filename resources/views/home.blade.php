@@ -128,7 +128,6 @@
         @endif
     @endif
 
-    {{-- Info card (only when not authenticated) --}}
     @guest
         <div class="rounded-2xl bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800/50 dark:to-slate-900/50 ring-1 ring-slate-200 dark:ring-slate-700 p-5">
             <div class="flex items-start gap-3">
@@ -145,6 +144,24 @@
             </div>
         </div>
     @endguest
+
+    {{-- Manual payment instructions --}}
+    @if(filled($organization->manual_payment_instructions))
+        <div class="rounded-2xl bg-white dark:bg-gray-800 ring-1 ring-slate-200 dark:ring-slate-700 shadow-sm overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3">
+                <span class="flex-shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                </span>
+                <div>
+                    <h2 class="text-base font-semibold text-slate-900 dark:text-white">How to pay dues</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Use these details when sending your payment.</p>
+                </div>
+            </div>
+            <div class="px-6 py-5">
+                <p class="whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-200">{{ $organization->manual_payment_instructions }}</p>
+            </div>
+        </div>
+    @endif
 </div>
 
 @endsection

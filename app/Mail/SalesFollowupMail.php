@@ -77,7 +77,7 @@ class SalesFollowupMail extends Mailable
         return match ($stage) {
             Lead::FOLLOWUP_DAY_0 => url('/#features'),
             Lead::FOLLOWUP_DAY_3 => url('/#how'),
-            Lead::FOLLOWUP_DAY_7 => 'mailto:hello@barangaybooks.app?subject=Book%20demo',
+            Lead::FOLLOWUP_DAY_7 => 'mailto:hello@barangaybooks.com?subject=Book%20demo',
             default => url('/'),
         };
     }

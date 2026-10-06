@@ -6,10 +6,10 @@
             $bg = $index % 2 === 0 ? '#f8fafc' : '#ffffff';
         @endphp
         <tr>
-            <td style="padding:12px 16px;background-color:{{ $bg }};font-size:12px;font-weight:600;color:#64748b;letter-spacing:0.04em;text-transform:uppercase;width:40%;vertical-align:middle;">
+            <td style="padding:12px 16px;background-color:{{ $bg }};font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;font-weight:600;color:#64748b;letter-spacing:0.04em;text-transform:uppercase;width:40%;vertical-align:middle;">
                 {{ $label }}
             </td>
-            <td style="padding:12px 16px;background-color:{{ $bg }};font-size:14px;font-weight:600;color:#0f172a;vertical-align:middle;">
+            <td style="padding:12px 16px;background-color:{{ $bg }};font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#0f172a;vertical-align:middle;">
                 {!! $value !!}
             </td>
         </tr>

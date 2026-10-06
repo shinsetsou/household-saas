@@ -35,6 +35,7 @@ class Organization extends Model
         'name', 'slug', 'monthly_due_amount',
         'subscription_status', 'trial_ends_at', 'subscription_ends_at',
         'plan_id', 'paymongo_customer_id', 'trial_warning_sent_at',
+        'manual_payment_instructions',
     ];
 
     protected function casts(): array
