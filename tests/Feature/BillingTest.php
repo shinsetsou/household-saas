@@ -131,12 +131,17 @@ class BillingTest extends TestCase
         $this->assertSame(3, Plan::count());
     }
 
-    public function test_billing_page_buttons_link_to_storefront_url(): void
+    public function test_billing_page_checkout_buttons_post_to_per_org_checkout(): void
     {
         config()->set('services.paymongo.storefront_url', 'https://storefront.paymongo.test/barangay-books');
 
-        // Put the org on the cheapest plan so both bigger plans show a switch CTA.
-        $this->organization->update(['plan_id' => $this->community->id]);
+        // Put the org on the cheapest plan so both bigger plans show a switch
+        // CTA, and give it a live trial window so the verify/storefront
+        // fallback section (trial-gated) renders too.
+        $this->organization->update([
+            'plan_id' => $this->community->id,
+            'trial_ends_at' => now()->addDays(3),
+        ]);
 
         $response = $this->actingAs($this->admin)
             ->get(route('organizations.settings.billing.show', $this->organization->slug));
@@ -144,8 +149,32 @@ class BillingTest extends TestCase
         $response->assertOk();
         $response->assertSee('Switch to Barangay');
         $response->assertSee('Switch to City');
-        $response->assertSee('https://storefront.paymongo.test/barangay-books', false);
-        $response->assertSee('target="_blank"', false);
+
+        // The primary CTA posts to the per-org checkout (metadata-carrying,
+        // webhook-matched). The static storefront link must appear ONLY as the
+        // fallback inside the verify-payment section, never as a plan button.
+        $this->assertSame(1, substr_count($response->getContent(), 'https://storefront.paymongo.test/barangay-books'));
+        $this->assertSame(1, substr_count($response->getContent(), 'target="_blank"'));
+        $this->assertStringContainsString('settings/billing/checkout/', $response->getContent());
+    }
+
+    public function test_verify_form_is_visible_while_trialing_on_community(): void
+    {
+        // Regression: the verify section keyed on $needsPayment computed
+        // INSIDE the plan-card loop (its last value came from the City card,
+        // never current for a trialing Community org), so the "I already
+        // paid" verification form never rendered for a trialing org —
+        // storefront payers had no path back to activation at all.
+        $this->organization->update([
+            'plan_id' => $this->community->id,
+            'subscription_status' => Organization::SUBSCRIPTION_TRIALING,
+            'trial_ends_at' => now()->addDays(3),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('organizations.settings.billing.show', $this->organization->slug))
+            ->assertOk()
+            ->assertSee('I already paid — verify my payment');
     }
 
     public function test_guest_cannot_view_billing_page(): void
@@ -183,7 +212,10 @@ class BillingTest extends TestCase
             'api.paymongo.com/v1/checkout_sessions' => Http::response([
                 'data' => [
                     'id' => 'cs_test_123',
-                    'attributes' => ['checkout_url' => 'https://paymongo.test/checkout/cs_test_123'],
+                    'attributes' => [
+                        'checkout_url' => 'https://paymongo.test/checkout/cs_test_123',
+                        'payment_intent_id' => 'pi_test_123',
+                    ],
                 ],
             ]),
         ]);
@@ -196,6 +228,7 @@ class BillingTest extends TestCase
         $this->assertDatabaseHas('payments', [
             'organization_id' => $this->organization->id,
             'paymongo_checkout_session_id' => 'cs_test_123',
+            'paymongo_payment_intent_id' => 'pi_test_123',
             'amount_cents' => 49900,
             'status' => Payment::STATUS_PENDING,
         ]);
@@ -265,6 +298,61 @@ class BillingTest extends TestCase
 
         $payment->refresh();
         $this->assertNotNull($payment->subscription_id);
+    }
+
+    public function test_payment_paid_webhook_matches_row_by_payment_intent_id(): void
+    {
+        // Kevin's prod bug (Nov 2026): a paid checkout stayed in trial. The
+        // checkout-session row startCheckout() writes has NO paymongo_payment_id
+        // yet and the payment.paid event's metadata is PayMongo's own — the only
+        // deterministic join is the payment_intent_id persisted on the row at
+        // session creation. Metadata must NOT be required for activation.
+        Payment::create([
+            'organization_id' => $this->organization->id,
+            'plan_id' => $this->barangay->id,
+            'paymongo_payment_intent_id' => 'pi_fix_1',
+            'amount_cents' => 49900,
+            'currency' => 'PHP',
+            'status' => Payment::STATUS_PENDING,
+            'description' => 'Checkout for Barangay',
+        ]);
+
+        $payload = [
+            'data' => [
+                'id' => 'pay_fix_1',
+                'attributes' => [
+                    'type' => 'payment.paid',
+                    'amount' => 49900,
+                    'currency' => 'PHP',
+                    'data' => [
+                        'id' => 'pay_fix_1',
+                        'attributes' => [
+                            'amount' => 49900,
+                            'currency' => 'PHP',
+                            'status' => 'paid',
+                            'payment_intent_id' => 'pi_fix_1',
+                            'metadata' => [
+                                'pm_reference_number' => 'SBuAjs2',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $this->postWebhook($payload)->assertOk();
+
+        $this->assertDatabaseHas('organizations', [
+            'id' => $this->organization->id,
+            'subscription_status' => Organization::SUBSCRIPTION_ACTIVE,
+            'plan_id' => $this->barangay->id,
+        ]);
+
+        $this->assertDatabaseHas('payments', [
+            'paymongo_payment_id' => 'pay_fix_1',
+            'paymongo_payment_intent_id' => 'pi_fix_1',
+            'status' => Payment::STATUS_PAID,
+        ]);
     }
 
     public function test_payment_paid_webhook_ignores_unrelated_payload(): void

@@ -52,6 +52,13 @@ class BillingService
 
         $checkoutId = data_get($session, 'id');
         $checkoutUrl = data_get($session, 'attributes.checkout_url');
+        // The created session already carries a payment intent id. The
+        // payment.paid webhook identifies the payment BY INTENT ID, while the
+        // row was only keyed on the checkout session id (cs_…) — different
+        // namespaces, so the webhook lookup could never match and paid
+        // checkouts stayed in trial. Persisting it makes the join key
+        // deterministic.
+        $paymentIntentId = data_get($session, 'attributes.payment_intent_id');
 
         Payment::create([
             'organization_id' => $organization->id,
@@ -61,6 +68,7 @@ class BillingService
             'status' => Payment::STATUS_PENDING,
             'description' => 'Checkout for '.$plan->name,
             'paymongo_checkout_session_id' => $checkoutId,
+            'paymongo_payment_intent_id' => $paymentIntentId,
             'payload' => $session,
         ]);
 
@@ -80,18 +88,26 @@ class BillingService
         // `organization_id` and `plan_id` there). The PayMongo payment.paid
         // event's metadata is PayMongo's own (`pm_reference_number`), not
         // ours — so we look up the local row by `paymongo_payment_id` first,
-        // then fall back to the checkout session id.
+        // then by the stored `paymongo_payment_intent_id` matching the
+        // event's `payment_intent_id`. Storefront / static-link payments
+        // have NO local row at all — they cannot auto-activate here; the
+        // verify-payment form is their only activation path.
         $payment = null;
         if ($paymentId) {
             $payment = Payment::where('paymongo_payment_id', $paymentId)->first();
         }
 
         if (! $payment) {
-            $sessionId = data_get($attributes, 'payment_intent_id')
+            $paymentIntentId = data_get($attributes, 'payment_intent_id')
                 ?: data_get($payload, 'payment_intent_id');
 
-            if ($sessionId) {
-                $payment = Payment::where('paymongo_checkout_session_id', $sessionId)->first();
+            if ($paymentIntentId) {
+                // Deterministic join: startCheckout() persists the intent id
+                // PayMongo returns when creating the checkout session, and
+                // payment.paid events carry the same intent id on the payment
+                // object. (The previous code compared this intent id against
+                // the checkout-session-id column — cs_ vs pi_, never matched.)
+                $payment = Payment::where('paymongo_payment_intent_id', $paymentIntentId)->first();
             }
         }
 

@@ -20,7 +20,7 @@ class Payment extends Model
 
     protected $fillable = [
         'organization_id', 'subscription_id', 'plan_id',
-        'paymongo_payment_id',
+        'paymongo_payment_id', 'paymongo_payment_intent_id',
         'paymongo_checkout_session_id', 'amount_cents', 'currency',
         'status', 'description', 'payload', 'paid_at',
         'verified_by_user_id',

@@ -187,16 +187,16 @@
                     // Show a "subscribe" / "reactivate" button on the current plan
                     // when the org is trialing or past_due — they haven't actually
                     // paid for it yet, so the no-button-on-current rule doesn't apply.
-                    $needsPayment = $isCurrent && ($isTrialing || $isPastDue);
+                    $planNeedsPayment = $isCurrent && ($isTrialing || $isPastDue);
                 @endphp
                 <div @class([
                     'relative rounded-2xl border-2 p-5 flex flex-col transition',
-                    'border-brand-500 ring-2 ring-brand-200' => $isCurrent && ! $needsPayment,
-                    'border-amber-400 ring-2 ring-amber-200' => $needsPayment,
+                    'border-brand-500 ring-2 ring-brand-200' => $isCurrent && ! $planNeedsPayment,
+                    'border-amber-400 ring-2 ring-amber-200' => $planNeedsPayment,
                     'border-slate-200 dark:border-slate-700 hover:border-slate-300' => ! $isCurrent,
                 ])>
                     @if($isCurrent)
-                        @if($needsPayment)
+                        @if($planNeedsPayment)
                             <span class="absolute -top-2 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $isPastDue ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800' }}">
                                 {{ $isPastDue ? 'Current · Past due' : 'Current · Trial' }}
                             </span>
@@ -250,31 +250,32 @@
                         </li>
                     </ul>
 
-                    @if(! $isCurrent || $needsPayment)
-                        <a href="{{ config('services.paymongo.storefront_url') }}"
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           @class([
-                               'w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900',
-                               'bg-gradient-to-r from-brand-600 to-violet-600 text-white shadow-sm hover:from-brand-700 hover:to-violet-700 focus:ring-brand-500' => $isUpgrade || ! $currentPlan || $needsPayment,
-                               'bg-amber-50 text-amber-800 ring-1 ring-amber-200 hover:bg-amber-100 focus:ring-amber-500' => $isDowngrade,
-                           ])>
-                            @if($isDowngrade)
-                                Downgrade to {{ $plan->name }}
-                            @elseif($needsPayment && $isPastDue)
-                                Reactivate {{ $plan->name }}
-                            @elseif($needsPayment && $isTrialing)
-                                Subscribe to {{ $plan->name }}
-                            @else
-                                Switch to {{ $plan->name }}
-                            @endif
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-                        </a>
+                    @if(! $isCurrent || $planNeedsPayment)
+                        <form method="POST" action="{{ route('organizations.settings.billing.checkout', [$org->slug, $plan->slug]) }}">
+                            @csrf
+                            <button type="submit"
+                               @class([
+                                   'w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900',
+                                   'bg-gradient-to-r from-brand-600 to-violet-600 text-white shadow-sm hover:from-brand-700 hover:to-violet-700 focus:ring-brand-500' => $isUpgrade || ! $currentPlan || $planNeedsPayment,
+                                   'bg-amber-50 text-amber-800 ring-1 ring-amber-200 hover:bg-amber-100 focus:ring-amber-500' => $isDowngrade,
+                               ])>
+                                @if($isDowngrade)
+                                    Downgrade to {{ $plan->name }}
+                                @elseif($planNeedsPayment && $isPastDue)
+                                    Reactivate {{ $plan->name }}
+                                @elseif($planNeedsPayment && $isTrialing)
+                                    Subscribe to {{ $plan->name }}
+                                @else
+                                    Switch to {{ $plan->name }}
+                                @endif
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                            </button>
+                        </form>
                         @if($isDowngrade)
                             <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
                                 Your current plan ends at period close — no double charge.
                             </p>
-                        @elseif($needsPayment)
+                        @elseif($planNeedsPayment)
                             <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
                                 @if($isTrialing)
                                     Start your {{ $plan->name }} subscription now &mdash; your trial converts to a paid plan.
@@ -326,9 +327,9 @@
         </div>
     @endif
 
-    {{-- Reference-number verification --}}
-    @if($needsPayment || $isCanceled || $isPastDue)
-        <div class="rounded-2xl bg-white dark:bg-gray-800 ring-1 ring-slate-200 dark:ring-slate-700 shadow-sm overflow-hidden">
+    {{-- Reference-number verification + storefront fallback --}}
+    @if($isTrialing || $isPastDue || $isCanceled || $status === 'unpaid')
+        <div id="verify-payment" class="rounded-2xl bg-white dark:bg-gray-800 ring-1 ring-slate-200 dark:ring-slate-700 shadow-sm overflow-hidden">
             <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-start gap-3">
                 <span class="flex-shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -336,6 +337,14 @@
                 <div class="flex-1">
                     <h2 class="text-base font-semibold text-slate-900 dark:text-white">Already paid through PayMongo?</h2>
                     <p class="mt-0.5 text-sm text-slate-500 dark:text-slate-400">If you already completed payment on the PayMongo storefront or QR Ph page, paste the reference number from your receipt or email here.</p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Prefer the standalone page?
+                        <a href="{{ config('services.paymongo.storefront_url') }}" target="_blank" rel="noopener noreferrer" class="font-semibold text-brand-600 hover:text-brand-500 dark:text-brand-400">
+                            Pay on the PayMongo storefront
+                            <svg class="w-3 h-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                        </a>
+                        — storefront payments are not tied to your org automatically, so verify with your receipt reference here. The Subscribe buttons above activate instantly once paid.
+                    </p>
                 </div>
             </div>
             <div class="px-6 py-5">
