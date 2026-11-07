@@ -20,6 +20,16 @@ Schedule::command('subscriptions:expire')
     ->onOneServer()
     ->withoutOverlapping();
 
+// Self-heal orphaned checkouts: a customer who paid on PayMongo's hosted
+// checkout but whose payment.paid webhook never activated the org stays
+// trialing forever without this. Active in-flight sessions are skipped, so
+// running every 15 min is safe; --older-than-minutes adds a second guard
+// against race-ing a customer who is still mid-checkout.
+Schedule::command('billing:reconcile-pending', ['--older-than-minutes' => 15])
+    ->everyFifteenMinutes()
+    ->onOneServer()
+    ->withoutOverlapping();
+
 Schedule::call(function () {
     app(AIManager::class)->agent('founder')->task('daily-brief')->queue();
 })
