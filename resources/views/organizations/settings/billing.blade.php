@@ -11,6 +11,12 @@
     $isCanceling = $org->isCancelingAtPeriodEnd();
     $isCanceled = $status === 'canceled';
     $isPastDue = $status === 'past_due';
+    // Status drift guard: production may hold `trialing` with an expired
+    // trial_ends_at when the daily trials:expire scheduler has not run yet.
+    // Time-based isOnTrial() then evaluates false while the status string
+    // still reads trialing — the org DOES need to pay, so treat it as its
+    // own attention state everywhere payment decisions are made.
+    $isTrialExpired = $status === 'trialing' && ! $isTrialing;
 
     $currentPlan = $org->plan;
     $householdCount = $org->households()->count();
@@ -25,6 +31,9 @@
         'unpaid'   => ['label' => 'Unpaid', 'tone' => 'red', 'pill' => 'bg-red-100 text-red-800'],
     ];
     $meta = $statusMeta[$status] ?? $statusMeta['canceled'];
+    if ($isTrialExpired) {
+        $meta = ['label' => 'Trial expired', 'tone' => 'amber', 'pill' => 'bg-amber-100 text-amber-800'];
+    }
 
     $trialDays = $isTrialing ? $org->daysUntilTrialEnds() : null;
 @endphp
@@ -187,7 +196,7 @@
                     // Show a "subscribe" / "reactivate" button on the current plan
                     // when the org is trialing or past_due — they haven't actually
                     // paid for it yet, so the no-button-on-current rule doesn't apply.
-                    $planNeedsPayment = $isCurrent && ($isTrialing || $isPastDue);
+                    $planNeedsPayment = $isCurrent && ($isTrialing || $isTrialExpired || $isPastDue);
                 @endphp
                 <div @class([
                     'relative rounded-2xl border-2 p-5 flex flex-col transition',
@@ -198,7 +207,7 @@
                     @if($isCurrent)
                         @if($planNeedsPayment)
                             <span class="absolute -top-2 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {{ $isPastDue ? 'bg-red-100 text-red-800' : 'bg-amber-100 text-amber-800' }}">
-                                {{ $isPastDue ? 'Current · Past due' : 'Current · Trial' }}
+                                {{ $isPastDue ? 'Current · Past due' : ($isTrialExpired ? 'Current · Trial expired' : 'Current · Trial') }}
                             </span>
                         @else
                             <span class="absolute -top-2 right-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r from-brand-600 to-violet-600 text-white shadow-sm">
@@ -263,7 +272,7 @@
                                     Downgrade to {{ $plan->name }}
                                 @elseif($planNeedsPayment && $isPastDue)
                                     Reactivate {{ $plan->name }}
-                                @elseif($planNeedsPayment && $isTrialing)
+                                @elseif($planNeedsPayment && ($isTrialing || $isTrialExpired))
                                     Subscribe to {{ $plan->name }}
                                 @else
                                     Switch to {{ $plan->name }}
@@ -279,6 +288,8 @@
                             <p class="mt-2 text-[11px] text-slate-500 dark:text-slate-400 text-center">
                                 @if($isTrialing)
                                     Start your {{ $plan->name }} subscription now &mdash; your trial converts to a paid plan.
+                                @elseif($isTrialExpired)
+                                    Keep {{ $org->name }} going &mdash; your trial has ended. Subscribe to stay on {{ $plan->name }}.
                                 @else
                                     Pay {{ $plan->formattedPrice() }} to restore write access to your HOA.
                                 @endif
@@ -328,7 +339,7 @@
     @endif
 
     {{-- Reference-number verification + storefront fallback --}}
-    @if($isTrialing || $isPastDue || $isCanceled || $status === 'unpaid')
+    @if($isTrialing || $isTrialExpired || $isPastDue || $isCanceled || $status === 'unpaid')
         <div id="verify-payment" class="rounded-2xl bg-white dark:bg-gray-800 ring-1 ring-slate-200 dark:ring-slate-700 shadow-sm overflow-hidden">
             <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-700 flex items-start gap-3">
                 <span class="flex-shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20">

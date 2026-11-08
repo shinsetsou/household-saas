@@ -177,6 +177,28 @@ class BillingTest extends TestCase
             ->assertSee('I already paid — verify my payment');
     }
 
+    public function test_verify_form_is_visible_when_trial_has_expired_but_status_still_trialing(): void
+    {
+        // Production state when the daily trials:expire scheduler has not run:
+        // subscription_status is still 'trialing' while trial_ends_at is in
+        // the past. Time-based isOnTrial() returns false, so the billing page
+        // must treat the org as needing payment — verify form, Subscribe CTA,
+        // and an explicit "Trial expired" pill — instead of silently hiding
+        // the pay/verify UI behind the stale status string.
+        $this->organization->update([
+            'plan_id' => $this->community->id,
+            'subscription_status' => Organization::SUBSCRIPTION_TRIALING,
+            'trial_ends_at' => now()->subDays(5),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get(route('organizations.settings.billing.show', $this->organization->slug))
+            ->assertOk()
+            ->assertSee('I already paid — verify my payment')
+            ->assertSee('Subscribe to Community')
+            ->assertSee('Trial expired');
+    }
+
     public function test_guest_cannot_view_billing_page(): void
     {
         $this->get(route('organizations.settings.billing.show', $this->organization->slug))
