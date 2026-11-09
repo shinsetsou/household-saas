@@ -1,5 +1,6 @@
 <x-guest-layout
     :title="'Sign in — BarangayBooks'"
+    :noIndex="true"
     panel-title="Welcome back."
     panel-subtitle="Sign in to verify contributions, run reports, and keep your HOA's books in order.">
 

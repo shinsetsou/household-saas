@@ -1,0 +1,33 @@
+# BarangayBooks — AI crawler fact sheet
+
+## Name
+BarangayBooks
+
+## What it does
+BarangayBooks is a web-based ledger for Philippine Homeowners Associations (HOAs) and community officers.
+
+- Collect monthly dues automatically with per-household statements of account.
+- Verify payments with photo proof uploaded by members (GCash, Maya, or bank-deposit receipts).
+- Send reminders and track delinquencies in real time.
+- Export audit-ready reports: contributions, expenses, delinquency, and household lists to PDF, Excel, and CSV.
+- Provide role-based access for treasurers, barangay admins, board members, and members.
+
+## Pricing
+- Community: ₱199 PHP / month — up to 50 households.
+- Barangay: ₱499 PHP / month — up to 250 households (most popular).
+- City: ₱999 PHP / month — unlimited households, includes API access.
+- Free during beta for founding HOAs; every paid plan starts with a 14-day free trial.
+
+## Contact
+Email: hello@barangaybooks.app
+
+## Important URLs
+- Home: https://barangaybooks.com/
+- Features: https://barangaybooks.com/features
+- Pricing: https://barangaybooks.com/pricing
+- Monthly dues: https://barangaybooks.com/monthly-dues
+- Sign in: https://barangaybooks.com/login
+- Create account: https://barangaybooks.com/register
+- Privacy: https://barangaybooks.com/privacy
+- Terms: https://barangaybooks.com/terms
+- Sitemap: https://barangaybooks.com/sitemap.xml

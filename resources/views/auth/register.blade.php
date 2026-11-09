@@ -1,5 +1,6 @@
 <x-guest-layout
     :title="'Create your account — BarangayBooks'"
+    :noIndex="true"
     panel-title="Start collecting dues in minutes."
     panel-subtitle="Free 14-day trial. No credit card needed. Set up your HOA, invite your treasurer, and you're done.">
 

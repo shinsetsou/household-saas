@@ -33,14 +33,14 @@ class Seo implements Arrayable, Stringable
         $siteName ??= (string) config('app.name', 'BarangayBooks');
 
         $baseTitle = $title !== null && $title !== ''
-            ? Str::limit($title, 55, '')
+            ? trim($title)
             : $siteName;
 
         $suffix = ' — '.$siteName;
         if (! Str::contains(Str::lower($baseTitle), Str::lower($siteName))) {
-            $resolvedTitle = Str::limit($baseTitle.$suffix, 60, '');
+            $resolvedTitle = $baseTitle.$suffix;
         } else {
-            $resolvedTitle = Str::limit($baseTitle, 60, '');
+            $resolvedTitle = $baseTitle;
         }
 
         $resolvedDescription = $description
@@ -142,7 +142,7 @@ class Seo implements Arrayable, Stringable
             $html[] = '<link rel="canonical" href="'.e($this->canonical).'">';
         }
 
-        $ogTitle = Str::limit($this->title, 95, '');
+        $ogTitle = $this->title;
 
         $html[] = '<meta property="og:site_name" content="'.e($this->siteName).'">';
         $html[] = '<meta property="og:type" content="'.e($this->type).'">';

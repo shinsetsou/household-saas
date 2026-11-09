@@ -12,10 +12,9 @@ class SitemapController extends Controller
 
         $pages = [
             ['loc' => $base.'/', 'priority' => '1.0', 'changefreq' => 'weekly'],
-            ['loc' => $base.'/#features', 'priority' => '0.8', 'changefreq' => 'monthly'],
-            ['loc' => $base.'/#how', 'priority' => '0.8', 'changefreq' => 'monthly'],
-            ['loc' => $base.'/#pricing', 'priority' => '0.9', 'changefreq' => 'weekly'],
-            ['loc' => $base.'/#faq', 'priority' => '0.6', 'changefreq' => 'monthly'],
+            ['loc' => $base.'/features', 'priority' => '0.8', 'changefreq' => 'monthly'],
+            ['loc' => $base.'/pricing', 'priority' => '0.9', 'changefreq' => 'weekly'],
+            ['loc' => $base.'/monthly-dues', 'priority' => '0.8', 'changefreq' => 'monthly'],
             ['loc' => route('login'), 'priority' => '0.5', 'changefreq' => 'monthly'],
             ['loc' => route('register'), 'priority' => '0.9', 'changefreq' => 'monthly'],
             ['loc' => route('privacy'), 'priority' => '0.3', 'changefreq' => 'yearly'],

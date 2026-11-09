@@ -40,6 +40,21 @@ Route::get('/', function () {
 Route::view('/privacy', 'legal.privacy')->name('privacy');
 Route::view('/terms', 'legal.terms')->name('terms');
 
+Route::view('/features', 'marketing.features', [
+    'title' => 'HOA Dues Collection Features — BarangayBooks',
+    'description' => 'Explore BarangayBooks features for Philippine HOAs: monthly dues billing, photo-proof verification, automated reminders, and audit-ready exports.',
+])->name('features');
+
+Route::view('/pricing', 'marketing.pricing', [
+    'title' => 'BarangayBooks Pricing — BarangayBooks',
+    'description' => 'BarangayBooks pricing: Community ₱199/month, Barangay ₱499/month, City ₱999/month. Start a 14-day free trial; free during beta for founding HOAs.',
+])->name('pricing');
+
+Route::view('/monthly-dues', 'marketing.monthly-dues', [
+    'title' => 'Monthly Dues Billing for Philippine HOAs — BarangayBooks',
+    'description' => 'Automate monthly dues billing for your Philippine HOA: set rates, generate statements, track penalties, and verify GCash or Maya payments with photo proof.',
+])->name('monthly-dues');
+
 Route::get('/sitemap.xml', SitemapController::class)->name('sitemap');
 Route::get('/robots.txt', RobotsController::class)->name('robots');
 

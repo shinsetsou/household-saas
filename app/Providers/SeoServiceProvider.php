@@ -128,18 +128,91 @@ class SeoServiceProvider extends ServiceProvider
                     description: $viewDescription ?: 'Terms and conditions for using BarangayBooks to manage your homeowners association records, payments, and member contributions.',
                     canonical: request()->fullUrl(),
                 );
+            } elseif (request()->routeIs('features')) {
+                $seo = Seo::make(
+                    title: $viewTitle ?: 'HOA Dues Collection Features — BarangayBooks',
+                    description: $viewDescription ?: 'Explore BarangayBooks features: monthly dues billing, photo-proof payment verification, automated reminders, audit-ready exports, and role-based access for Philippine HOAs.',
+                    canonical: request()->fullUrl(),
+                    type: 'website',
+                )->withSchema([
+                    [
+                        '@context' => 'https://schema.org',
+                        '@type' => 'Organization',
+                        'name' => config('app.name', 'BarangayBooks'),
+                        'url' => rtrim(config('app.url') ?: url('/'), '/'),
+                        'logo' => rtrim(config('app.url') ?: url('/'), '/').'/og/default.png',
+                    ],
+                    [
+                        '@context' => 'https://schema.org',
+                        '@type' => 'BreadcrumbList',
+                        'itemListElement' => [
+                            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => rtrim(config('app.url') ?: url('/'), '/')],
+                            ['@type' => 'ListItem', 'position' => 2, 'name' => 'Features', 'item' => request()->url()],
+                        ],
+                    ],
+                ]);
+            } elseif (request()->routeIs('pricing')) {
+                $seo = Seo::make(
+                    title: $viewTitle ?: 'Pricing — BarangayBooks',
+                    description: $viewDescription ?: 'BarangayBooks pricing: Community ₱199/month, Barangay ₱499/month, City ₱999/month. Start a 14-day free trial; free during beta for founding HOAs.',
+                    canonical: request()->fullUrl(),
+                    type: 'website',
+                )->withSchema([
+                    [
+                        '@context' => 'https://schema.org',
+                        '@type' => 'BreadcrumbList',
+                        'itemListElement' => [
+                            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => rtrim(config('app.url') ?: url('/'), '/')],
+                            ['@type' => 'ListItem', 'position' => 2, 'name' => 'Pricing', 'item' => request()->url()],
+                        ],
+                    ],
+                    [
+                        '@context' => 'https://schema.org',
+                        '@type' => 'FAQPage',
+                        'mainEntity' => [
+                            ['@type' => 'Question', 'name' => 'Who owns the data?', 'acceptedAnswer' => ['@type' => 'Answer', 'text' => 'Your HOA does. Always. We are the custodian, not the owner.']],
+                            ['@type' => 'Question', 'name' => 'Can we export everything?', 'acceptedAnswer' => ['@type' => 'Answer', 'text' => 'Yes. Contributions, expenses, delinquency, and household lists export to PDF, Excel, and CSV with one click.']],
+                            ['@type' => 'Question', 'name' => 'Is it secure enough for handling member dues?', 'acceptedAnswer' => ['@type' => 'Answer', 'text' => 'Records and uploaded receipts are encrypted at rest and in transit. Role-based access limits what each officer can see and do.']],
+                            ['@type' => 'Question', 'name' => 'How fast can we onboard?', 'acceptedAnswer' => ['@type' => 'Answer', 'text' => 'Most HOAs are live the same afternoon. Sign up, upload a CSV of your households, and you are collecting verified payments within the hour.']],
+                            ['@type' => 'Question', 'name' => 'Do you support GCash, Maya, or local bank integrations?', 'acceptedAnswer' => ['@type' => 'Answer', 'text' => 'Not yet — that is on the roadmap. Today, members log payments with a photo of their GCash receipt or deposit slip.']],
+                        ],
+                    ],
+                ]);
+            } elseif (request()->routeIs('monthly-dues')) {
+                $seo = Seo::make(
+                    title: $viewTitle ?: 'Automated Monthly Dues Billing for Philippine HOAs — BarangayBooks',
+                    description: $viewDescription ?: 'Automate monthly dues billing for your Philippine HOA: set rates, generate statements in one click, track penalties, and verify GCash or Maya payments with photo proof.',
+                    canonical: request()->fullUrl(),
+                    type: 'website',
+                )->withSchema([
+                    [
+                        '@context' => 'https://schema.org',
+                        '@type' => 'Article',
+                        'headline' => 'Automated Monthly Dues Billing for Philippine HOAs',
+                        'description' => 'How BarangayBooks automates monthly dues billing for Philippine homeowners associations.',
+                        'publisher' => ['@type' => 'Organization', 'name' => config('app.name', 'BarangayBooks'), 'url' => rtrim(config('app.url') ?: url('/'), '/')],
+                    ],
+                    [
+                        '@context' => 'https://schema.org',
+                        '@type' => 'BreadcrumbList',
+                        'itemListElement' => [
+                            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => rtrim(config('app.url') ?: url('/'), '/')],
+                            ['@type' => 'ListItem', 'position' => 2, 'name' => 'Monthly dues', 'item' => request()->url()],
+                        ],
+                    ],
+                ]);
             } elseif (request()->routeIs('login')) {
                 $seo = Seo::make(
                     title: $viewTitle ?: 'Sign in — BarangayBooks',
                     description: $viewDescription ?: "Sign in to verify HOA contributions, run reports, and keep your association's books in order.",
                     canonical: request()->fullUrl(),
-                )->withNoIndex();
+                );
             } elseif (request()->routeIs('register')) {
                 $seo = Seo::make(
                     title: $viewTitle ?: 'Create your account — BarangayBooks',
                     description: $viewDescription ?: 'Start your 14-day free trial of BarangayBooks — photo-verified HOA dues collection for Philippine homeowners associations.',
                     canonical: request()->fullUrl(),
-                )->withNoIndex();
+                );
             } elseif (request()->routeIs([
                 'password.request',
                 'password.email',

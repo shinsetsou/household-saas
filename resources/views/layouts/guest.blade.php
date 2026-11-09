@@ -1,3 +1,10 @@
+@props([
+    'title' => null,
+    'panelTitle' => null,
+    'panelSubtitle' => null,
+    'noIndex' => false,
+])
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="h-full">
 <head>
@@ -12,6 +19,10 @@
     <link rel="manifest" href="/site.webmanifest">
 
     <title>{{ $title ?? config('app.name', 'BarangayBooks') }}</title>
+
+    @if($noIndex ?? false)
+        <meta name="robots" content="noindex">
+    @endif
 
     @seo
     @stack('head')
